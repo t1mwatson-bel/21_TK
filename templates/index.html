@@ -1,0 +1,1489 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+>
+
+<title>OLD — 10 Trigger Statistics</title>
+
+<style>
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+
+    margin: 0;
+
+    font-family:
+        Inter,
+        Arial,
+        sans-serif;
+
+    background:
+        radial-gradient(
+            circle at top,
+            #172033 0%,
+            #090c13 45%,
+            #05070b 100%
+        );
+
+    color: #ffffff;
+
+    min-height: 100vh;
+}
+
+
+/* =========================================================
+   HEADER
+========================================================= */
+
+.header {
+
+    padding: 30px 20px 20px;
+
+    text-align: center;
+}
+
+.logo {
+
+    font-size: 38px;
+
+    font-weight: 900;
+
+    letter-spacing: 5px;
+
+    color: #ffffff;
+
+    text-shadow:
+        0 0 10px rgba(255,255,255,.25),
+        0 0 30px rgba(80,160,255,.25);
+}
+
+.subtitle {
+
+    margin-top: 8px;
+
+    color: #8e9bb0;
+
+    font-size: 14px;
+
+    letter-spacing: 2px;
+
+    text-transform: uppercase;
+}
+
+
+/* =========================================================
+   CONTAINER
+========================================================= */
+
+.container {
+
+    width: min(
+        1400px,
+        calc(100% - 30px)
+    );
+
+    margin: auto;
+
+    padding-bottom: 50px;
+}
+
+
+/* =========================================================
+   CARDS
+========================================================= */
+
+.grid {
+
+    display: grid;
+
+    grid-template-columns:
+        repeat(
+            auto-fit,
+            minmax(180px, 1fr)
+        );
+
+    gap: 15px;
+
+    margin-bottom: 25px;
+}
+
+.card {
+
+    background:
+        linear-gradient(
+            145deg,
+            rgba(255,255,255,.07),
+            rgba(255,255,255,.025)
+        );
+
+    border:
+        1px solid rgba(255,255,255,.08);
+
+    border-radius: 18px;
+
+    padding: 22px;
+
+    box-shadow:
+        0 10px 30px rgba(0,0,0,.25);
+
+    backdrop-filter: blur(10px);
+}
+
+.card-title {
+
+    color: #8995a8;
+
+    font-size: 13px;
+
+    margin-bottom: 10px;
+
+    text-transform: uppercase;
+
+    letter-spacing: 1px;
+}
+
+.card-value {
+
+    font-size: 32px;
+
+    font-weight: 800;
+}
+
+.green {
+    color: #4cff9b;
+}
+
+.red {
+    color: #ff5d70;
+}
+
+.blue {
+    color: #65aaff;
+}
+
+.orange {
+    color: #ffbd66;
+}
+
+
+/* =========================================================
+   SECTION
+========================================================= */
+
+.section {
+
+    margin-top: 25px;
+
+    background:
+        rgba(255,255,255,.035);
+
+    border:
+        1px solid rgba(255,255,255,.07);
+
+    border-radius: 20px;
+
+    padding: 22px;
+
+    overflow: hidden;
+}
+
+.section-title {
+
+    font-size: 20px;
+
+    font-weight: 800;
+
+    margin-bottom: 18px;
+}
+
+
+/* =========================================================
+   TABLE
+========================================================= */
+
+.table-wrapper {
+
+    overflow-x: auto;
+}
+
+table {
+
+    width: 100%;
+
+    border-collapse: collapse;
+
+    min-width: 600px;
+}
+
+th {
+
+    text-align: left;
+
+    color: #7e8ba0;
+
+    font-size: 12px;
+
+    text-transform: uppercase;
+
+    letter-spacing: 1px;
+
+    padding: 13px;
+
+    border-bottom:
+        1px solid
+        rgba(255,255,255,.08);
+}
+
+td {
+
+    padding: 14px 13px;
+
+    border-bottom:
+        1px solid
+        rgba(255,255,255,.05);
+
+    font-size: 14px;
+}
+
+tr:last-child td {
+
+    border-bottom: none;
+}
+
+.progress {
+
+    width: 120px;
+
+    height: 7px;
+
+    background: #1b2230;
+
+    border-radius: 20px;
+
+    overflow: hidden;
+}
+
+.progress-bar {
+
+    height: 100%;
+
+    background:
+        linear-gradient(
+            90deg,
+            #36e98d,
+            #62ffb0
+        );
+
+    border-radius: 20px;
+}
+
+
+/* =========================================================
+   LATEST
+========================================================= */
+
+.latest {
+
+    display: grid;
+
+    grid-template-columns:
+        repeat(
+            auto-fit,
+            minmax(160px, 1fr)
+        );
+
+    gap: 12px;
+}
+
+.latest-item {
+
+    background:
+        rgba(0,0,0,.18);
+
+    padding: 15px;
+
+    border-radius: 13px;
+}
+
+.latest-label {
+
+    color: #7f8b9e;
+
+    font-size: 12px;
+
+    margin-bottom: 7px;
+}
+
+.latest-value {
+
+    font-size: 19px;
+
+    font-weight: 700;
+}
+
+
+/* =========================================================
+   CHART
+========================================================= */
+
+.chart {
+
+    height: 280px;
+
+    display: flex;
+
+    align-items: flex-end;
+
+    gap: 3px;
+
+    padding:
+        20px 5px 5px;
+
+    overflow-x: auto;
+}
+
+.bar {
+
+    min-width: 8px;
+
+    flex: 1;
+
+    max-width: 18px;
+
+    border-radius:
+        5px 5px 2px 2px;
+
+    cursor: pointer;
+
+    transition:
+        transform .15s,
+        opacity .15s;
+}
+
+.bar:hover {
+
+    transform:
+        translateY(-4px);
+
+    opacity: .8;
+}
+
+.bar.hit {
+
+    background:
+        linear-gradient(
+            180deg,
+            #4cff9b,
+            #16a96a
+        );
+}
+
+.bar.miss {
+
+    background:
+        linear-gradient(
+            180deg,
+            #ff6478,
+            #b92742
+        );
+}
+
+
+/* =========================================================
+   ROLLING
+========================================================= */
+
+.rolling {
+
+    display: grid;
+
+    grid-template-columns:
+        repeat(
+            auto-fit,
+            minmax(180px, 1fr)
+        );
+
+    gap: 15px;
+}
+
+.rolling-card {
+
+    background:
+        rgba(0,0,0,.18);
+
+    border-radius: 15px;
+
+    padding: 20px;
+
+    text-align: center;
+}
+
+.rolling-name {
+
+    color: #8490a4;
+
+    font-size: 13px;
+
+    margin-bottom: 8px;
+}
+
+.rolling-value {
+
+    font-size: 30px;
+
+    font-weight: 900;
+}
+
+
+/* =========================================================
+   FOOTER
+========================================================= */
+
+.footer {
+
+    text-align: center;
+
+    color: #596577;
+
+    font-size: 12px;
+
+    padding: 25px 0;
+}
+
+
+/* =========================================================
+   MOBILE
+========================================================= */
+
+@media (max-width: 600px) {
+
+    .logo {
+        font-size: 30px;
+    }
+
+    .container {
+        width: calc(100% - 20px);
+    }
+
+    .section {
+        padding: 16px;
+    }
+
+    .card-value {
+        font-size: 27px;
+    }
+
+}
+
+</style>
+
+</head>
+
+
+<body>
+
+
+<header class="header">
+
+    <div class="logo">
+        OLD
+    </div>
+
+    <div class="subtitle">
+        10 Trigger Statistics
+    </div>
+
+</header>
+
+
+<main class="container">
+
+
+    <!-- =====================================================
+         MAIN STATS
+    ====================================================== -->
+
+    <div class="grid">
+
+        <div class="card">
+
+            <div class="card-title">
+                Всего прогнозов
+            </div>
+
+            <div
+                id="total"
+                class="card-value blue"
+            >
+                —
+            </div>
+
+        </div>
+
+
+        <div class="card">
+
+            <div class="card-title">
+                Зашло
+            </div>
+
+            <div
+                id="hits"
+                class="card-value green"
+            >
+                —
+            </div>
+
+        </div>
+
+
+        <div class="card">
+
+            <div class="card-title">
+                Не зашло
+            </div>
+
+            <div
+                id="misses"
+                class="card-value red"
+            >
+                —
+            </div>
+
+        </div>
+
+
+        <div class="card">
+
+            <div class="card-title">
+                Проходимость
+            </div>
+
+            <div
+                id="accuracy"
+                class="card-value orange"
+            >
+                —
+            </div>
+
+        </div>
+
+
+        <div class="card">
+
+            <div class="card-title">
+                Текущая серия
+            </div>
+
+            <div
+                id="streak"
+                class="card-value"
+            >
+                —
+            </div>
+
+        </div>
+
+
+        <div class="card">
+
+            <div class="card-title">
+                Макс. серия
+            </div>
+
+            <div
+                id="max-streak"
+                class="card-value"
+            >
+                —
+            </div>
+
+        </div>
+
+    </div>
+
+
+
+    <!-- =====================================================
+         LAST PREDICTION
+    ====================================================== -->
+
+    <section class="section">
+
+        <div class="section-title">
+            🎯 Последний прогноз
+        </div>
+
+        <div
+            id="latest"
+            class="latest"
+        >
+            Загрузка...
+        </div>
+
+    </section>
+
+
+
+    <!-- =====================================================
+         ROLLING
+    ====================================================== -->
+
+    <section class="section">
+
+        <div class="section-title">
+            📈 Проходимость по дистанции
+        </div>
+
+        <div
+            id="rolling"
+            class="rolling"
+        >
+        </div>
+
+    </section>
+
+
+
+    <!-- =====================================================
+         DOGON
+    ====================================================== -->
+
+    <section class="section">
+
+        <div class="section-title">
+            🎯 Статистика по догонам
+        </div>
+
+        <div class="table-wrapper">
+
+            <table>
+
+                <thead>
+
+                    <tr>
+
+                        <th>
+                            Догон
+                        </th>
+
+                        <th>
+                            Прогнозов
+                        </th>
+
+                        <th>
+                            Зашло
+                        </th>
+
+                        <th>
+                            Не зашло
+                        </th>
+
+                        <th>
+                            Проходимость
+                        </th>
+
+                        <th>
+                            %
+                        </th>
+
+                    </tr>
+
+                </thead>
+
+                <tbody id="dogon-table">
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </section>
+
+
+
+    <!-- =====================================================
+         CARDS
+    ====================================================== -->
+
+    <section class="section">
+
+        <div class="section-title">
+            🃏 Проходимость по картам
+        </div>
+
+        <div class="table-wrapper">
+
+            <table>
+
+                <thead>
+
+                    <tr>
+
+                        <th>
+                            Карта
+                        </th>
+
+                        <th>
+                            Прогнозов
+                        </th>
+
+                        <th>
+                            Зашло
+                        </th>
+
+                        <th>
+                            Не зашло
+                        </th>
+
+                        <th>
+                            Проходимость
+                        </th>
+
+                        <th>
+                            %
+                        </th>
+
+                    </tr>
+
+                </thead>
+
+                <tbody id="cards-table">
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </section>
+
+
+
+    <!-- =====================================================
+         PLAYER CARD COUNT
+    ====================================================== -->
+
+    <section class="section">
+
+        <div class="section-title">
+            🧮 По количеству карт игрока
+        </div>
+
+        <div class="table-wrapper">
+
+            <table>
+
+                <thead>
+
+                    <tr>
+
+                        <th>
+                            Карт у игрока
+                        </th>
+
+                        <th>
+                            Задержка
+                        </th>
+
+                        <th>
+                            Прогнозов
+                        </th>
+
+                        <th>
+                            Зашло
+                        </th>
+
+                        <th>
+                            Не зашло
+                        </th>
+
+                        <th>
+                            Проходимость
+                        </th>
+
+                    </tr>
+
+                </thead>
+
+                <tbody id="player-table">
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </section>
+
+
+
+    <!-- =====================================================
+         CHART
+    ====================================================== -->
+
+    <section class="section">
+
+        <div class="section-title">
+            📊 Последние 100 прогнозов
+        </div>
+
+        <div
+            id="chart"
+            class="chart"
+        >
+        </div>
+
+    </section>
+
+
+    <div
+        id="updated"
+        class="footer"
+    >
+        Обновление...
+    </div>
+
+
+</main>
+
+
+
+<script>
+
+
+// ============================================================
+// FORMAT
+// ============================================================
+
+function percent(value) {
+
+    return Number(value || 0).toFixed(2) + "%";
+
+}
+
+
+function escapeHtml(value) {
+
+    return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+
+}
+
+
+// ============================================================
+// LOAD
+// ============================================================
+
+async function loadStats() {
+
+    try {
+
+        const response =
+            await fetch(
+                "/api/stats?_=" +
+                Date.now()
+            );
+
+        if (!response.ok) {
+
+            throw new Error(
+                "HTTP " + response.status
+            );
+
+        }
+
+        const data =
+            await response.json();
+
+
+        render(data);
+
+    }
+
+    catch (error) {
+
+        console.error(error);
+
+        document.getElementById(
+            "updated"
+        ).textContent =
+            "Ошибка загрузки статистики";
+
+    }
+
+}
+
+
+// ============================================================
+// RENDER
+// ============================================================
+
+function render(data) {
+
+    const overall =
+        data.overall || {};
+
+
+    document.getElementById(
+        "total"
+    ).textContent =
+        overall.total || 0;
+
+
+    document.getElementById(
+        "hits"
+    ).textContent =
+        overall.hits || 0;
+
+
+    document.getElementById(
+        "misses"
+    ).textContent =
+        overall.misses || 0;
+
+
+    document.getElementById(
+        "accuracy"
+    ).textContent =
+        percent(overall.accuracy);
+
+
+    // --------------------------------------------------------
+    // STREAK
+    // --------------------------------------------------------
+
+    const streak =
+        data.streak || {};
+
+    const streakElement =
+        document.getElementById(
+            "streak"
+        );
+
+    if (streak.type === "hit") {
+
+        streakElement.textContent =
+            "🔥 +" + streak.count;
+
+        streakElement.className =
+            "card-value green";
+
+    }
+
+    else if (streak.type === "miss") {
+
+        streakElement.textContent =
+            "❌ " + streak.count;
+
+        streakElement.className =
+            "card-value red";
+
+    }
+
+    else {
+
+        streakElement.textContent =
+            "—";
+
+    }
+
+
+    // --------------------------------------------------------
+    // MAX STREAK
+    // --------------------------------------------------------
+
+    const max =
+        data.max_streak || {};
+
+    document.getElementById(
+        "max-streak"
+    ).textContent =
+        "🔥 " +
+        (max.hit || 0) +
+        " / ❌ " +
+        (max.miss || 0);
+
+
+    // --------------------------------------------------------
+    // LATEST
+    // --------------------------------------------------------
+
+    const latest =
+        data.latest;
+
+    const latestElement =
+        document.getElementById(
+            "latest"
+        );
+
+    if (!latest) {
+
+        latestElement.innerHTML =
+            "<div class='latest-item'>" +
+            "Нет данных" +
+            "</div>";
+
+    }
+
+    else {
+
+        let resultText = "⏳ Ожидание";
+
+        if (latest.result === "hit") {
+            resultText = "✅ ЗАШЛО";
+        }
+
+        if (latest.result === "miss") {
+            resultText = "❌ НЕ ЗАШЛО";
+        }
+
+        latestElement.innerHTML = `
+
+            <div class="latest-item">
+
+                <div class="latest-label">
+                    Триггер
+                </div>
+
+                <div class="latest-value">
+                    #N${escapeHtml(
+                        latest.trigger_number
+                    )}
+                </div>
+
+            </div>
+
+
+            <div class="latest-item">
+
+                <div class="latest-label">
+                    Цель
+                </div>
+
+                <div class="latest-value">
+                    #N${escapeHtml(
+                        latest.target_number
+                    )}
+                </div>
+
+            </div>
+
+
+            <div class="latest-item">
+
+                <div class="latest-label">
+                    Карта
+                </div>
+
+                <div class="latest-value">
+                    ${escapeHtml(
+                        latest.card
+                    )}
+                </div>
+
+            </div>
+
+
+            <div class="latest-item">
+
+                <div class="latest-label">
+                    Задержка
+                </div>
+
+                <div class="latest-value">
+                    +${escapeHtml(
+                        latest.target_offset
+                    )}
+                </div>
+
+            </div>
+
+
+            <div class="latest-item">
+
+                <div class="latest-label">
+                    Догон
+                </div>
+
+                <div class="latest-value">
+                    D${escapeHtml(
+                        latest.dogon
+                    )}
+                </div>
+
+            </div>
+
+
+            <div class="latest-item">
+
+                <div class="latest-label">
+                    Результат
+                </div>
+
+                <div class="latest-value">
+                    ${resultText}
+                </div>
+
+            </div>
+        `;
+
+    }
+
+
+    // --------------------------------------------------------
+    // ROLLING
+    // --------------------------------------------------------
+
+    const rolling =
+        data.rolling || {};
+
+    const rollingElement =
+        document.getElementById(
+            "rolling"
+        );
+
+    const rollingPeriods = [
+        ["100", "Последние 100"],
+        ["500", "Последние 500"],
+        ["1000", "Последние 1000"]
+    ];
+
+    rollingElement.innerHTML = "";
+
+    rollingPeriods.forEach(
+        ([key, name]) => {
+
+            const item =
+                rolling[key] || {};
+
+            rollingElement.innerHTML += `
+
+                <div class="rolling-card">
+
+                    <div class="rolling-name">
+                        ${name}
+                    </div>
+
+                    <div class="rolling-value">
+                        ${percent(
+                            item.accuracy
+                        )}
+                    </div>
+
+                    <div
+                        style="
+                            margin-top:8px;
+                            color:#788598;
+                            font-size:12px;
+                        "
+                    >
+                        ${item.hits || 0}
+                        / ${item.total || 0}
+                    </div>
+
+                </div>
+
+            `;
+
+        }
+    );
+
+
+    // --------------------------------------------------------
+    // DOGON
+    // --------------------------------------------------------
+
+    const dogonTable =
+        document.getElementById(
+            "dogon-table"
+        );
+
+    dogonTable.innerHTML = "";
+
+    (data.dogon || []).forEach(
+        item => {
+
+            dogonTable.innerHTML += `
+
+                <tr>
+
+                    <td>
+                        <strong>
+                            D${item.dogon}
+                        </strong>
+                    </td>
+
+                    <td>
+                        ${item.total}
+                    </td>
+
+                    <td class="green">
+                        ${item.hits}
+                    </td>
+
+                    <td class="red">
+                        ${item.misses}
+                    </td>
+
+                    <td>
+
+                        <div class="progress">
+
+                            <div
+                                class="progress-bar"
+                                style="
+                                    width:
+                                    ${Math.min(
+                                        item.accuracy,
+                                        100
+                                    )}%;
+                                "
+                            ></div>
+
+                        </div>
+
+                    </td>
+
+                    <td>
+                        <strong>
+                            ${percent(
+                                item.accuracy
+                            )}
+                        </strong>
+                    </td>
+
+                </tr>
+
+            `;
+
+        }
+    );
+
+
+    // --------------------------------------------------------
+    // CARDS
+    // --------------------------------------------------------
+
+    const cardsTable =
+        document.getElementById(
+            "cards-table"
+        );
+
+    cardsTable.innerHTML = "";
+
+    (data.cards || []).forEach(
+        item => {
+
+            cardsTable.innerHTML += `
+
+                <tr>
+
+                    <td>
+                        <strong>
+                            ${escapeHtml(
+                                item.card
+                            )}
+                        </strong>
+                    </td>
+
+                    <td>
+                        ${item.total}
+                    </td>
+
+                    <td class="green">
+                        ${item.hits}
+                    </td>
+
+                    <td class="red">
+                        ${item.misses}
+                    </td>
+
+                    <td>
+
+                        <div class="progress">
+
+                            <div
+                                class="progress-bar"
+                                style="
+                                    width:
+                                    ${Math.min(
+                                        item.accuracy,
+                                        100
+                                    )}%;
+                                "
+                            ></div>
+
+                        </div>
+
+                    </td>
+
+                    <td>
+                        <strong>
+                            ${percent(
+                                item.accuracy
+                            )}
+                        </strong>
+                    </td>
+
+                </tr>
+
+            `;
+
+        }
+    );
+
+
+    // --------------------------------------------------------
+    // PLAYER CARD COUNT
+    // --------------------------------------------------------
+
+    const playerTable =
+        document.getElementById(
+            "player-table"
+        );
+
+    playerTable.innerHTML = "";
+
+    (data.player_cards || []).forEach(
+        item => {
+
+            playerTable.innerHTML += `
+
+                <tr>
+
+                    <td>
+                        <strong>
+                            ${item.count}
+                        </strong>
+                    </td>
+
+                    <td>
+                        +${item.offset}
+                    </td>
+
+                    <td>
+                        ${item.total}
+                    </td>
+
+                    <td class="green">
+                        ${item.hits}
+                    </td>
+
+                    <td class="red">
+                        ${item.misses}
+                    </td>
+
+                    <td>
+                        <strong>
+                            ${percent(
+                                item.accuracy
+                            )}
+                        </strong>
+                    </td>
+
+                </tr>
+
+            `;
+
+        }
+    );
+
+
+    // --------------------------------------------------------
+    // CHART
+    // --------------------------------------------------------
+
+    const chart =
+        document.getElementById(
+            "chart"
+        );
+
+    chart.innerHTML = "";
+
+    (data.chart || []).forEach(
+        item => {
+
+            const bar =
+                document.createElement(
+                    "div"
+                );
+
+            bar.className =
+                "bar " +
+                (
+                    item.result === "hit"
+                        ? "hit"
+                        : "miss"
+                );
+
+            bar.style.height =
+                "100%";
+
+            bar.title =
+                "#N" +
+                item.game +
+                " | " +
+                item.card +
+                " | D" +
+                item.dogon +
+                " | " +
+                (
+                    item.result === "hit"
+                        ? "ЗАШЛО"
+                        : "НЕ ЗАШЛО"
+                );
+
+            chart.appendChild(bar);
+
+        }
+    );
+
+
+    // --------------------------------------------------------
+    // UPDATED
+    // --------------------------------------------------------
+
+    document.getElementById(
+        "updated"
+    ).textContent =
+        "Последнее обновление: " +
+        data.updated_at;
+
+}
+
+
+// ============================================================
+// FIRST LOAD
+// ============================================================
+
+loadStats();
+
+
+// ============================================================
+// AUTO REFRESH
+// ============================================================
+
+setInterval(
+    loadStats,
+    5000
+);
+
+</script>
+
+
+</body>
+
+</html>
