@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>OLD_GROUP — Статистика</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #05070d;
+    --bg2: #0a0f1c;
+    --panel: rgba(15, 22, 40, 0.75);
+    --border: rgba(0, 200, 255, 0.25);
+    --border-strong: rgba(0, 220, 255, 0.55);
+    --neon-blue: #00d4ff;
+    --neon-cyan: #00fff0;
+    --neon-purple: #a855f7;
+    --neon-green: #22ff88;
+    --neon-red: #ff2e6a;
+    --neon-yellow: #ffd60a;
+    --text: #dbe7ff;
+    --text-dim: #7d8bb0;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Rajdhani', sans-serif;
+    background: radial-gradient(circle at 20% 0%, #0e1730 0%, var(--bg) 45%),
+                radial-gradient(circle at 90% 100%, #1a0a2e 0%, var(--bg) 55%);
+    background-attachment: fixed;
+    color: var(--text);
+    min-height: 100vh;
+    padding: 20px 14px 60px;
+    overflow-x: hidden;
+  }
+
+  /* Декоративные неоновые пятна */
+  body::before, body::after {
+    content: '';
+    position: fixed;
+    width: 500px; height: 500px;
+    border-radius: 50%;
+    filter: blur(140px);
+    opacity: 0.35;
+    z-index: 0;
+    pointer-events: none;
+  }
+  body::before { background: var(--neon-blue); top: -200px; left: -150px; }
+  body::after { background: var(--neon-purple); bottom: -200px; right: -150px; }
+
+  .wrap {
+    max-width: 900px;
+    margin: 0 auto;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* ===== HEADER ===== */
+  .logo {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 12px;
+  }
+
+  .logo-circle {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(0,212,255,0.15), transparent 70%);
+    border: 2px solid var(--border-strong);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 900;
+    font-size: 22px;
+    color: var(--neon-cyan);
+    text-shadow: 0 0 12px var(--neon-cyan), 0 0 28px var(--neon-blue);
+    box-shadow: 0 0 25px rgba(0,212,255,0.5),
+                inset 0 0 30px rgba(0,212,255,0.25);
+    animation: pulseLogo 3s ease-in-out infinite;
+    letter-spacing: 2px;
+    text-align: center;
+    line-height: 1.1;
+  }
+
+  @keyframes pulseLogo {
+    0%, 100% { box-shadow: 0 0 25px rgba(0,212,255,0.5), inset 0 0 30px rgba(0,212,255,0.25); }
+    50% { box-shadow: 0 0 45px rgba(0,212,255,0.9), inset 0 0 40px rgba(0,212,255,0.45); }
+  }
+
+  .title {
+    text-align: center;
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 700;
+    font-size: 20px;
+    letter-spacing: 3px;
+    color: #fff;
+    text-shadow: 0 0 10px var(--neon-cyan), 0 0 24px var(--neon-blue);
+    margin-bottom: 22px;
+  }
+
+  /* ===== GRID МЕТРИК ===== */
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 22px;
+  }
+
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 12px 14px;
+    backdrop-filter: blur(8px);
+    position: relative;
+    overflow: hidden;
+    transition: all 0.25s ease;
+  }
+
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--neon-cyan), transparent);
+    opacity: 0.6;
+  }
+
+  .card:hover {
+    border-color: var(--border-strong);
+    box-shadow: 0 0 20px rgba(0,212,255,0.35);
+    transform: translateY(-2px);
+  }
+
+  .card-label {
+    font-size: 12px;
+    color: var(--text-dim);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+    font-weight: 600;
+  }
+
+  .card-value {
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 700;
+    font-size: 22px;
+    color: #fff;
+    text-shadow: 0 0 10px rgba(0,212,255,0.6);
+  }
+
+  .card-value.green { color: var(--neon-green); text-shadow: 0 0 12px rgba(34,255,136,0.8); }
+  .card-value.red   { color: var(--neon-red);   text-shadow: 0 0 12px rgba(255,46,106,0.8); }
+  .card-value.cyan  { color: var(--neon-cyan);  text-shadow: 0 0 12px rgba(0,255,240,0.8); }
+  .card-value.yellow{ color: var(--neon-yellow);text-shadow: 0 0 12px rgba(255,214,10,0.8); }
+
+  /* ===== SECTION ===== */
+  .section {
+    margin-bottom: 22px;
+  }
+
+  .section-title {
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 700;
+    font-size: 14px;
+    letter-spacing: 2.5px;
+    color: var(--neon-cyan);
+    text-shadow: 0 0 10px rgba(0,255,240,0.7);
+    margin-bottom: 10px;
+    padding-left: 6px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .section-title span.icon {
+    font-size: 16px;
+    filter: drop-shadow(0 0 6px var(--neon-cyan));
+  }
+
+  /* ===== TABLE ===== */
+  .table {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+    backdrop-filter: blur(8px);
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+  }
+
+  thead th {
+    background: rgba(0, 212, 255, 0.06);
+    color: var(--neon-cyan);
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 600;
+    font-size: 11px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    padding: 10px 12px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+    text-shadow: 0 0 8px rgba(0,255,240,0.5);
+  }
+
+  tbody td {
+    padding: 10px 12px;
+    border-bottom: 1px solid rgba(0,212,255,0.08);
+    color: var(--text);
+    font-weight: 600;
+    font-size: 14px;
+  }
+
+  tbody tr:last-child td { border-bottom: none; }
+
+  tbody tr:hover {
+    background: rgba(0,212,255,0.05);
+  }
+
+  .green-text { color: var(--neon-green); text-shadow: 0 0 6px rgba(34,255,136,0.6); }
+  .red-text   { color: var(--neon-red);   text-shadow: 0 0 6px rgba(255,46,106,0.6); }
+  .dim-text   { color: var(--text-dim); }
+
+  .status-win    { color: var(--neon-green); text-shadow: 0 0 8px rgba(34,255,136,0.8); font-weight: 700; }
+  .status-lose   { color: var(--neon-red);   text-shadow: 0 0 8px rgba(255,46,106,0.8); font-weight: 700; }
+  .status-pending{ color: var(--neon-yellow);text-shadow: 0 0 8px rgba(255,214,10,0.8); font-weight: 700; }
+  .status-return { color: var(--neon-purple);text-shadow: 0 0 8px rgba(168,85,247,0.8); font-weight: 700; }
+
+  /* ===== BUTTON ===== */
+  .btn-wrap {
+    display: flex;
+    justify-content: center;
+    margin: 30px 0 16px;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 34px;
+    border-radius: 50px;
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 700;
+    font-size: 15px;
+    letter-spacing: 1.5px;
+    text-decoration: none;
+    color: #001018;
+    background: linear-gradient(135deg, var(--neon-cyan), var(--neon-blue));
+    box-shadow: 0 0 25px rgba(0,212,255,0.7),
+                0 0 60px rgba(0,212,255,0.35);
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+  }
+
+  .btn:hover {
+    transform: translateY(-3px) scale(1.03);
+    box-shadow: 0 0 40px rgba(0,255,240,0.95),
+                0 0 90px rgba(0,212,255,0.6);
+  }
+
+  /* ===== FOOTER ===== */
+  .footer {
+    text-align: center;
+    margin-top: 26px;
+    font-size: 12px;
+    color: var(--text-dim);
+    letter-spacing: 1px;
+  }
+
+  .footer .warn {
+    margin-top: 10px;
+    color: #ffb020;
+    opacity: 0.8;
+    font-size: 11px;
+  }
+
+  .footer .brand {
+    margin-top: 8px;
+    font-family: 'Orbitron', sans-serif;
+    color: var(--neon-cyan);
+    text-shadow: 0 0 8px rgba(0,255,240,0.6);
+    letter-spacing: 3px;
+    font-size: 12px;
+  }
+
+  /* ===== АДАПТИВ ===== */
+  @media (max-width: 640px) {
+    .grid { grid-template-columns: repeat(2, 1fr); }
+    .card-value { font-size: 18px; }
+    .card-label { font-size: 10px; }
+    .title { font-size: 16px; letter-spacing: 2px; }
+    .logo-circle { width: 90px; height: 90px; font-size: 16px; }
+    table { font-size: 12px; }
+    thead th { font-size: 10px; padding: 8px 6px; }
+    tbody td { padding: 8px 6px; font-size: 12px; }
+    .section-title { font-size: 12px; letter-spacing: 1.5px; }
+  }
+
+  @media (max-width: 380px) {
+    .grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <!-- LOGO -->
+  <div class="logo">
+    <div class="logo-circle">
+      OLD<br>GROUP
+    </div>
+  </div>
+
+  <div class="title">OLD_GROUP — СТАТИСТИКА</div>
+
+  <!-- МЕТРИКИ -->
+  <div class="grid" id="summaryGrid">
+    <div class="card"><div class="card-label">Баланс</div><div class="card-value cyan" id="balance">— ₽</div></div>
+    <div class="card"><div class="card-label">Профит</div><div class="card-value" id="profit">— ₽</div></div>
+    <div class="card"><div class="card-label">Winrate</div><div class="card-value" id="winrate">— %</div></div>
+    <div class="card"><div class="card-label">ROI</div><div class="card-value" id="roi">— %</div></div>
+    <div class="card"><div class="card-label">Всего</div><div class="card-value" id="total">0</div></div>
+    <div class="card"><div class="card-label">Плюсы</div><div class="card-value green" id="wins">0</div></div>
+    <div class="card"><div class="card-label">Минусы</div><div class="card-value red" id="loses">0</div></div>
+    <div class="card"><div class="card-label">В ожидании</div><div class="card-value yellow" id="pending">0</div></div>
+    <div class="card"><div class="card-label">Текущая ставка</div><div class="card-value cyan" id="currentBet">— ₽</div></div>
+  </div>
+
+  <!-- ПО ДОГОНАМ -->
+  <div class="section">
+    <div class="section-title"><span class="icon">🎯</span> ПО ДОГОНАМ</div>
+    <div class="table">
+      <table>
+        <thead>
+          <tr>
+            <th>Догон</th>
+            <th>Сыграно</th>
+            <th>Плюсов</th>
+            <th>Winrate</th>
+          </tr>
+        </thead>
+        <tbody id="dogonsBody">
+          <tr><td colspan="4" class="dim-text">Загрузка...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ПО МАСТЯМ -->
+  <div class="section">
+    <div class="section-title"><span class="icon">🃏</span> ПО МАСТЯМ</div>
+    <div class="table">
+      <table>
+        <thead>
+          <tr>
+            <th>Масть</th>
+            <th>Всего</th>
+            <th>Плюсов</th>
+            <th>Winrate</th>
+          </tr>
+        </thead>
+        <tbody id="suitsBody">
+          <tr><td colspan="4" class="dim-text">Загрузка...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ПО ДНЯМ -->
+  <div class="section">
+    <div class="section-title"><span class="icon">📅</span> ПО ДНЯМ</div>
+    <div class="table">
+      <table>
+        <thead>
+          <tr>
+            <th>Дата</th>
+            <th>Всего</th>
+            <th>Плюсов</th>
+            <th>Минусов</th>
+            <th>Winrate</th>
+          </tr>
+        </thead>
+        <tbody id="dailyBody">
+          <tr><td colspan="5" class="dim-text">Загрузка...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ПОСЛЕДНИЕ 30 -->
+  <div class="section">
+    <div class="section-title"><span class="icon">🕐</span> ПОСЛЕДНИЕ 30 ПРОГНОЗОВ</div>
+    <div class="table">
+      <table>
+        <thead>
+          <tr>
+            <th></th>
+            <th>Игра</th>
+            <th>Масть</th>
+            <th>Ставка</th>
+            <th>Догон</th>
+            <th>Статус</th>
+          </tr>
+        </thead>
+        <tbody id="lastBody">
+          <tr><td colspan="6" class="dim-text">Загрузка...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- КНОПКА -->
+  <div class="btn-wrap">
+    <a class="btn" href="https://t.me/OLD_GROUP_BOT" target="_blank">
+      🤖 ОТКРЫТЬ БОТА
+    </a>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="footer">
+    Обновлено: <span id="updatedAt">—</span> (МСК)
+    <div class="warn">⚠️ Ставки — это риск. Прошлые результаты не гарантируют будущую прибыль.</div>
+    <div class="brand">OLD_GROUP</div>
+  </div>
+
+</div>
+
+<script>
+  // ============================================================
+  // ОБНОВЛЕНИЕ ДАННЫХ
+  // ============================================================
+
+  function fmtMoney(v) {
+    if (v === null || v === undefined) return '— ₽';
+    const n = Number(v);
+    const sign = n > 0 ? '+' : '';
+    return sign + n.toLocaleString('ru-RU', { maximumFractionDigits: 2 }) + ' ₽';
+  }
+
+  function fmtPct(v) {
+    if (v === null || v === undefined) return '— %';
+    return Number(v).toFixed(1) + ' %';
+  }
+
+  function statusClass(s) {
+    if (s === 'win') return 'status-win';
+    if (s === 'lose') return 'status-lose';
+    if (s === 'pending') return 'status-pending';
+    if (s === 'return' || s === 'void' || s === 'expired') return 'status-return';
+    return 'dim-text';
+  }
+
+  function statusIcon(s) {
+    if (s === 'win') return '✅';
+    if (s === 'lose') return '❌';
+    if (s === 'pending') return '⏳';
+    if (s === 'return') return '♻️';
+    return '•';
+  }
+
+  function statusText(s) {
+    if (s === 'win') return 'win';
+    if (s === 'lose') return 'lose';
+    if (s === 'pending') return 'pending';
+    if (s === 'return') return 'return';
+    return s || '—';
+  }
+
+  async function loadStats() {
+    try {
+      const r = await fetch('/api/stats?t=' + Date.now());
+      const data = await r.json();
+
+      // ---- SUMMARY ----
+      const s = data.summary || {};
+
+      document.getElementById('balance').textContent = fmtMoney(s.balance);
+      document.getElementById('balance').className =
+        'card-value ' + (s.balance >= (s.start_balance || 0) ? 'cyan' : 'red');
+
+      const profitEl = document.getElementById('profit');
+      profitEl.textContent = fmtMoney(s.profit);
+      profitEl.className = 'card-value ' + (s.profit >= 0 ? 'green' : 'red');
+
+      document.getElementById('winrate').textContent = fmtPct(s.winrate);
+      document.getElementById('winrate').className =
+        'card-value ' + (s.winrate >= 50 ? 'green' : 'yellow');
+
+      document.getElementById('roi').textContent = fmtPct(s.roi);
+      document.getElementById('roi').className =
+        'card-value ' + (s.roi >= 0 ? 'green' : 'red');
+
+      document.getElementById('total').textContent = s.total || 0;
+      document.getElementById('wins').textContent = s.wins || 0;
+      document.getElementById('loses').textContent = s.loses || 0;
+      document.getElementById('pending').textContent = s.pending || 0;
+      document.getElementById('currentBet').textContent = fmtMoney(s.current_bet);
+
+      // ---- DOGONS ----
+      const dogonsBody = document.getElementById('dogonsBody');
+      dogonsBody.innerHTML = '';
+
+      (data.dogons || []).forEach(d => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${d.dogon}</td>
+          <td>${d.played}</td>
+          <td class="green-text">${d.wins}</td>
+          <td class="${d.winrate >= 50 ? 'green-text' : 'red-text'}">${fmtPct(d.winrate)}</td>
+        `;
+        dogonsBody.appendChild(tr);
+      });
+
+      if (!(data.dogons || []).length) {
+        dogonsBody.innerHTML = '<tr><td colspan="4" class="dim-text">Нет данных</td></tr>';
+      }
+
+      // ---- SUITS ----
+      const suitsBody = document.getElementById('suitsBody');
+      suitsBody.innerHTML = '';
+
+      (data.suits || []).forEach(x => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td style="font-size:18px">${x.suit}</td>
+          <td>${x.total}</td>
+          <td class="green-text">${x.wins}</td>
+          <td class="${x.winrate >= 50 ? 'green-text' : 'red-text'}">${fmtPct(x.winrate)}</td>
+        `;
+        suitsBody.appendChild(tr);
+      });
+
+      if (!(data.suits || []).length) {
+        suitsBody.innerHTML = '<tr><td colspan="4" class="dim-text">Нет данных</td></tr>';
+      }
+
+      // ---- DAILY ----
+      const dailyBody = document.getElementById('dailyBody');
+      dailyBody.innerHTML = '';
+
+      (data.daily || []).forEach(d => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${d.date}</td>
+          <td>${d.total}</td>
+          <td class="green-text">${d.wins}</td>
+          <td class="red-text">${d.loses}</td>
+          <td class="${d.winrate >= 50 ? 'green-text' : 'red-text'}">${fmtPct(d.winrate)}</td>
+        `;
+        dailyBody.appendChild(tr);
+      });
+
+      if (!(data.daily || []).length) {
+        dailyBody.innerHTML = '<tr><td colspan="5" class="dim-text">Нет данных</td></tr>';
+      }
+
+      // ---- LAST ----
+      const lastBody = document.getElementById('lastBody');
+      lastBody.innerHTML = '';
+
+      (data.last || []).forEach(p => {
+        const tr = document.createElement('tr');
+        const st = p.status || '';
+        const dogonText = (p.dogon === null || p.dogon === undefined) ? '—' : ('Д' + p.dogon);
+        const betText = p.bet ? (Number(p.bet).toLocaleString('ru-RU') + ' ₽') : '— ₽';
+
+        tr.innerHTML = `
+          <td style="font-size:16px">${statusIcon(st)}</td>
+          <td>#N${p.target ?? '—'}</td>
+          <td style="font-size:18px">${p.suit || '—'}</td>
+          <td>${betText}</td>
+          <td>${dogonText}</td>
+          <td class="${statusClass(st)}">${statusText(st)}</td>
+        `;
+        lastBody.appendChild(tr);
+      });
+
+      if (!(data.last || []).length) {
+        lastBody.innerHTML = '<tr><td colspan="6" class="dim-text">Нет данных</td></tr>';
+      }
+
+      // ---- TIME ----
+      if (data.updated_at) {
+        const dt = new Date(data.updated_at);
+        document.getElementById('updatedAt').textContent =
+          dt.toLocaleString('ru-RU', { hour12: false });
+      }
+
+    } catch (e) {
+      console.error('Ошибка загрузки статистики:', e);
+    }
+  }
+
+  // Первая загрузка + авто-обновление каждые 10 секунд
+  loadStats();
+  setInterval(loadStats, 10000);
+</script>
+
+</body>
+</html>
