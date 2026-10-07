@@ -40,6 +40,8 @@ from parsers import (
     cards_to_text,
 )
 
+from coefs import get_dealer_cf
+
 from telegram_api import (
     delete_webhook,
     telegram_send,
@@ -423,6 +425,12 @@ def create_prediction(game):
     base_bet = get_current_bet()
 
     # ---------------------------------------------------------------
+    # Коэффициент по карте
+    # ---------------------------------------------------------------
+
+    cf = get_dealer_cf(predicted_card)
+
+    # ---------------------------------------------------------------
     # Создаём прогноз
     # ---------------------------------------------------------------
 
@@ -451,6 +459,9 @@ def create_prediction(game):
 
         "predicted_card":
             predicted_card,
+
+        "cf":
+            cf,
 
         "player_card_count":
             player_card_count,
@@ -527,7 +538,8 @@ def create_prediction(game):
     )
 
     print(
-        f"🎯 Прогноз: {predicted_card}",
+        f"🎯 Прогноз: {predicted_card} "
+        f"(cf {cf})",
         flush=True,
     )
 
@@ -774,6 +786,10 @@ def check_predictions():
                     )
                 )
 
+                cf = get_dealer_cf(
+                    prediction["predicted_card"]
+                )
+
                 prediction["status"] = (
                     "win"
                 )
@@ -795,6 +811,17 @@ def check_predictions():
                 ] = bet_amount
 
                 prediction[
+                    "cf"
+                ] = cf
+
+                prediction[
+                    "payout"
+                ] = round(
+                    bet_amount * cf,
+                    2,
+                )
+
+                prediction[
                     "closed_at"
                 ] = now.isoformat()
 
@@ -812,6 +839,7 @@ def check_predictions():
                     prediction,
                     dogon,
                     bet_amount,
+                    cf=cf,
                 )
 
                 print("", flush=True)
@@ -842,6 +870,13 @@ def check_predictions():
                 print(
                     f"💰 Ставка: "
                     f"{bet_amount} ₽",
+                    flush=True,
+                )
+
+                print(
+                    f"🎰 cf: {cf} → "
+                    f"выплата "
+                    f"{round(bet_amount * cf, 2)} ₽",
                     flush=True,
                 )
 
