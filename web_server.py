@@ -428,7 +428,8 @@ def api_stats():
             "dogon": get_dogon(p),
             "result": get_result(p),
             "player_card_count": get_player_count(p),
-            "target_offset": get_target_offset(p)
+            "target_offset": get_target_offset(p),
+            "cf": p.get("cf")
         }
 
     # --------------------------------------------------------
