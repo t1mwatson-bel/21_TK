@@ -5,7 +5,15 @@ import time
 from datetime import datetime
 from flask import Flask, jsonify, render_template
 
-app = Flask(__name__)
+import os
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+app = Flask(
+    __name__,
+    template_folder=os.path.join(BASE_DIR, "templates"),
+    static_folder=os.path.join(BASE_DIR, "static")
+)
 
 PREDICTIONS_FILE = os.getenv("PREDICTIONS_FILE", "predictions.json")
 PORT = int(os.getenv("PORT", "8080"))
