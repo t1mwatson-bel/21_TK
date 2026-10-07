@@ -34,7 +34,7 @@ from parsers import (
     log_game,
     add_game_offset,
     find_trigger,
-    find_card_in_dealer,
+    find_card_in_game,     # ← новая функция
     normalize_suit,
     card_to_text,
     cards_to_text,
@@ -615,10 +615,10 @@ def check_predictions():
             # ИЩЕМ КОНКРЕТНУЮ КАРТУ У ДИЛЕРА
             # -------------------------------------------------------
 
-            found_card = find_card_in_dealer(
-                game,
-                prediction["predicted_card"],
-            )
+            found_card = find_card_in_game(
+    game,
+    prediction["predicted_card"],
+)
 
             if found_card:
 
