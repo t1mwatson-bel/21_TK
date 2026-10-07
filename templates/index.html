@@ -10,7 +10,7 @@
     content="width=device-width, initial-scale=1.0"
 >
 
-<title>OLD — 10 Trigger Statistics</title>
+<title>OLD — Статистика точных карт</title>
 
 <style>
 
@@ -54,11 +54,11 @@ body {
 
 .logo {
 
-    font-size: 38px;
+    font-size: 32px;
 
     font-weight: 900;
 
-    letter-spacing: 5px;
+    letter-spacing: 3px;
 
     color: #ffffff;
 
@@ -460,6 +460,25 @@ tr:last-child td {
     padding: 25px 0;
 }
 
+.disclaimer {
+
+    margin-top: 15px;
+
+    color: #596577;
+
+    font-size: 11px;
+
+    line-height: 1.6;
+
+    max-width: 800px;
+
+    margin-left: auto;
+
+    margin-right: auto;
+
+    padding: 0 20px;
+}
+
 
 /* =========================================================
    MOBILE
@@ -468,7 +487,8 @@ tr:last-child td {
 @media (max-width: 600px) {
 
     .logo {
-        font-size: 30px;
+        font-size: 22px;
+        letter-spacing: 1px;
     }
 
     .container {
@@ -496,11 +516,7 @@ tr:last-child td {
 <header class="header">
 
     <div class="logo">
-        OLD
-    </div>
-
-    <div class="subtitle">
-        10 Trigger Statistics
+        OLD — Статистика точных карт
     </div>
 
 </header>
@@ -572,38 +588,6 @@ tr:last-child td {
             <div
                 id="accuracy"
                 class="card-value orange"
-            >
-                —
-            </div>
-
-        </div>
-
-
-        <div class="card">
-
-            <div class="card-title">
-                Текущая серия
-            </div>
-
-            <div
-                id="streak"
-                class="card-value"
-            >
-                —
-            </div>
-
-        </div>
-
-
-        <div class="card">
-
-            <div class="card-title">
-                Макс. серия
-            </div>
-
-            <div
-                id="max-streak"
-                class="card-value"
             >
                 —
             </div>
@@ -770,63 +754,6 @@ tr:last-child td {
 
 
     <!-- =====================================================
-         PLAYER CARD COUNT
-    ====================================================== -->
-
-    <section class="section">
-
-        <div class="section-title">
-            🧮 По количеству карт игрока
-        </div>
-
-        <div class="table-wrapper">
-
-            <table>
-
-                <thead>
-
-                    <tr>
-
-                        <th>
-                            Карт у игрока
-                        </th>
-
-                        <th>
-                            Задержка
-                        </th>
-
-                        <th>
-                            Прогнозов
-                        </th>
-
-                        <th>
-                            Зашло
-                        </th>
-
-                        <th>
-                            Не зашло
-                        </th>
-
-                        <th>
-                            Проходимость
-                        </th>
-
-                    </tr>
-
-                </thead>
-
-                <tbody id="player-table">
-                </tbody>
-
-            </table>
-
-        </div>
-
-    </section>
-
-
-
-    <!-- =====================================================
          CHART
     ====================================================== -->
 
@@ -850,6 +777,12 @@ tr:last-child td {
         class="footer"
     >
         Обновление...
+    </div>
+
+
+    <div class="disclaimer">
+        ⚠️ Ставки — это риск. Относитесь к этому с ответственностью.
+        Данный ресурс не несёт ответственности за возможные потери.
     </div>
 
 
@@ -962,62 +895,6 @@ function render(data) {
 
 
     // --------------------------------------------------------
-    // STREAK
-    // --------------------------------------------------------
-
-    const streak =
-        data.streak || {};
-
-    const streakElement =
-        document.getElementById(
-            "streak"
-        );
-
-    if (streak.type === "hit") {
-
-        streakElement.textContent =
-            "🔥 +" + streak.count;
-
-        streakElement.className =
-            "card-value green";
-
-    }
-
-    else if (streak.type === "miss") {
-
-        streakElement.textContent =
-            "❌ " + streak.count;
-
-        streakElement.className =
-            "card-value red";
-
-    }
-
-    else {
-
-        streakElement.textContent =
-            "—";
-
-    }
-
-
-    // --------------------------------------------------------
-    // MAX STREAK
-    // --------------------------------------------------------
-
-    const max =
-        data.max_streak || {};
-
-    document.getElementById(
-        "max-streak"
-    ).textContent =
-        "🔥 " +
-        (max.hit || 0) +
-        " / ❌ " +
-        (max.miss || 0);
-
-
-    // --------------------------------------------------------
     // LATEST
     // --------------------------------------------------------
 
@@ -1050,37 +927,11 @@ function render(data) {
             resultText = "❌ НЕ ЗАШЛО";
         }
 
+        const cfText = latest.cf
+            ? Number(latest.cf).toFixed(2)
+            : "—";
+
         latestElement.innerHTML = `
-
-            <div class="latest-item">
-
-                <div class="latest-label">
-                    Триггер
-                </div>
-
-                <div class="latest-value">
-                    #N${escapeHtml(
-                        latest.trigger_number
-                    )}
-                </div>
-
-            </div>
-
-
-            <div class="latest-item">
-
-                <div class="latest-label">
-                    Цель
-                </div>
-
-                <div class="latest-value">
-                    #N${escapeHtml(
-                        latest.target_number
-                    )}
-                </div>
-
-            </div>
-
 
             <div class="latest-item">
 
@@ -1089,9 +940,7 @@ function render(data) {
                 </div>
 
                 <div class="latest-value">
-                    ${escapeHtml(
-                        latest.card
-                    )}
+                    ${escapeHtml(latest.card)}
                 </div>
 
             </div>
@@ -1100,13 +949,11 @@ function render(data) {
             <div class="latest-item">
 
                 <div class="latest-label">
-                    Задержка
+                    Коэффициент
                 </div>
 
                 <div class="latest-value">
-                    +${escapeHtml(
-                        latest.target_offset
-                    )}
+                    ${cfText}
                 </div>
 
             </div>
@@ -1119,9 +966,7 @@ function render(data) {
                 </div>
 
                 <div class="latest-value">
-                    D${escapeHtml(
-                        latest.dogon
-                    )}
+                    D${escapeHtml(latest.dogon)}
                 </div>
 
             </div>
@@ -1178,9 +1023,7 @@ function render(data) {
                     </div>
 
                     <div class="rolling-value">
-                        ${percent(
-                            item.accuracy
-                        )}
+                        ${percent(item.accuracy)}
                     </div>
 
                     <div
@@ -1246,10 +1089,7 @@ function render(data) {
                                 class="progress-bar"
                                 style="
                                     width:
-                                    ${Math.min(
-                                        item.accuracy,
-                                        100
-                                    )}%;
+                                    ${Math.min(item.accuracy, 100)}%;
                                 "
                             ></div>
 
@@ -1259,9 +1099,7 @@ function render(data) {
 
                     <td>
                         <strong>
-                            ${percent(
-                                item.accuracy
-                            )}
+                            ${percent(item.accuracy)}
                         </strong>
                     </td>
 
@@ -1293,9 +1131,7 @@ function render(data) {
 
                     <td>
                         <strong>
-                            ${escapeHtml(
-                                item.card
-                            )}
+                            ${escapeHtml(item.card)}
                         </strong>
                     </td>
 
@@ -1319,10 +1155,7 @@ function render(data) {
                                 class="progress-bar"
                                 style="
                                     width:
-                                    ${Math.min(
-                                        item.accuracy,
-                                        100
-                                    )}%;
+                                    ${Math.min(item.accuracy, 100)}%;
                                 "
                             ></div>
 
@@ -1332,65 +1165,7 @@ function render(data) {
 
                     <td>
                         <strong>
-                            ${percent(
-                                item.accuracy
-                            )}
-                        </strong>
-                    </td>
-
-                </tr>
-
-            `;
-
-        }
-    );
-
-
-    // --------------------------------------------------------
-    // PLAYER CARD COUNT
-    // --------------------------------------------------------
-
-    const playerTable =
-        document.getElementById(
-            "player-table"
-        );
-
-    playerTable.innerHTML = "";
-
-    (data.player_cards || []).forEach(
-        item => {
-
-            playerTable.innerHTML += `
-
-                <tr>
-
-                    <td>
-                        <strong>
-                            ${item.count}
-                        </strong>
-                    </td>
-
-                    <td>
-                        +${item.offset}
-                    </td>
-
-                    <td>
-                        ${item.total}
-                    </td>
-
-                    <td class="green">
-                        ${item.hits}
-                    </td>
-
-                    <td class="red">
-                        ${item.misses}
-                    </td>
-
-                    <td>
-                        <strong>
-                            ${percent(
-                                item.accuracy
-                            )}
+                            ${percent(item.accuracy)}
                         </strong>
                     </td>
 
