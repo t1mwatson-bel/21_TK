@@ -1392,16 +1392,17 @@ def main():
 # =====================================================================
 
 if __name__ == "__main__":
-
     import threading
+    import time
 
     threading.Thread(
         target=main,
         daemon=True,
     ).start()
 
-    from web_server import (
-        start_web_server
-    )
-
+    from web_server import start_web_server
     start_web_server()
+
+    # Главный поток живёт вечно, пока работают daemon-потоки
+    while True:
+        time.sleep(60)
