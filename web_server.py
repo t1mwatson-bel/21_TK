@@ -1,5 +1,7 @@
 import os
 import json
+import threading
+import time
 from datetime import datetime
 from flask import Flask, jsonify, render_template
 
@@ -475,21 +477,43 @@ def health():
 
 
 # ============================================================
-# START
+# ЗАПУСК В ОТДЕЛЬНОМ ПОТОКЕ (для импорта в bot.py)
 # ============================================================
 
-if __name__ == "__main__":
-
+def start_web_server():
+    """
+    Запускает Flask в отдельном потоке.
+    Эту функцию вызывает bot.py через импорт.
+    """
     print("=" * 60)
     print("OLD — 10 TRIGGER STATISTICS")
     print("=" * 60)
-
     print(f"Predictions: {PREDICTIONS_FILE}")
     print(f"Port: {PORT}")
 
-    app.run(
-        host="0.0.0.0",
-        port=PORT,
-        debug=False,
-        threaded=True
-    )
+    def _run():
+        app.run(
+            host="0.0.0.0",
+            port=PORT,
+            debug=False,
+            threaded=True,
+            use_reloader=False  # Обязательно для запуска в потоке!
+        )
+
+    t = threading.Thread(target=_run, daemon=True)
+    t.start()
+
+    print(f"🌐 Web-server запущен на порту {PORT}", flush=True)
+    return t
+
+
+# ============================================================
+# ЛОКАЛЬНЫЙ ЗАПУСК (если запустить web_server.py отдельно)
+# ============================================================
+
+if __name__ == "__main__":
+    start_web_server()
+
+    # Чтобы процесс не завершался
+    while True:
+        time.sleep(60)
