@@ -95,34 +95,12 @@ last_cleanup_date = None
 # =====================================================================
 
 def is_sleep_time(now=None):
-
-    if now is None:
-        now = datetime.now(MOSCOW_TZ)
-
-    current = now.time()
-
-    sleep_start = dtime(SLEEP_HOUR, SLEEP_MINUTE)
-    wake_start = dtime(WAKE_HOUR, WAKE_MINUTE)
-
-    if sleep_start <= current or current < wake_start:
-        return True
-
+    # Сон отключён — бот работает 24/7
     return False
 
 
 def is_last_prediction_time(now=None):
-
-    if now is None:
-        now = datetime.now(MOSCOW_TZ)
-
-    current = now.time()
-
-    cutoff = dtime(LAST_PREDICTION_HOUR, LAST_PREDICTION_MINUTE)
-    sleep_start = dtime(SLEEP_HOUR, SLEEP_MINUTE)
-
-    if cutoff <= current < sleep_start:
-        return True
-
+    # Отключено — прогнозы создаются в любое время
     return False
 
 
