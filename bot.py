@@ -615,10 +615,7 @@ def check_predictions():
             # ИЩЕМ КОНКРЕТНУЮ КАРТУ У ДИЛЕРА
             # -------------------------------------------------------
 
-            found_card = find_card_in_game(
-    game,
-    prediction["predicted_card"],
-)
+            found_card = find_card_in_game(game, prediction["predicted_card"])
 
             if found_card:
 
