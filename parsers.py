@@ -393,7 +393,7 @@ def find_trigger(game):
 
 
 # =====================================================================
-# ПОИСК КАРТЫ У ДИЛЕРА
+# ПОИСК КАРТЫ ТОЛЬКО У ДИЛЕРА (оставлено для совместимости)
 # =====================================================================
 
 def find_card_in_dealer(game, target_card):
@@ -433,6 +433,64 @@ def find_card_in_dealer(game, target_card):
             rank == target_rank
             and suit == target_suit
         ):
+            return card_to_text(card)
+
+    return None
+
+
+# =====================================================================
+# ПОИСК КАРТЫ У ИГРОКА И ДИЛЕРА (НОВАЯ)
+# =====================================================================
+
+def find_card_in_game(game, target_card):
+    """
+    Ищет КОНКРЕТНУЮ карту и у игрока, и у дилера.
+
+    Например target_card = A♣
+
+    Ищем A♣ в player_cards + dealer_cards.
+    Если найдена хотя бы в одной руке — возвращаем текст карты.
+    """
+
+    if not target_card:
+        return None
+
+    target_rank_match = re.match(
+        r"(10|[2-9AJQK])(♠️|♣️|♦️|♥️)$",
+        target_card,
+    )
+
+    if not target_rank_match:
+        return None
+
+    target_rank = target_rank_match.group(1)
+    target_suit = normalize_suit(target_rank_match.group(2))
+
+    if not target_suit:
+        return None
+
+    # ---------------------------------------------------------------
+    # Ищем у ИГРОКА
+    # ---------------------------------------------------------------
+
+    for card in game.get("player_cards", []):
+
+        rank = normalize_rank(card.get("rank"))
+        suit = normalize_suit(card.get("suit"))
+
+        if rank == target_rank and suit == target_suit:
+            return card_to_text(card)
+
+    # ---------------------------------------------------------------
+    # Ищем у ДИЛЕРА
+    # ---------------------------------------------------------------
+
+    for card in game.get("dealer_cards", []):
+
+        rank = normalize_rank(card.get("rank"))
+        suit = normalize_suit(card.get("suit"))
+
+        if rank == target_rank and suit == target_suit:
             return card_to_text(card)
 
     return None
