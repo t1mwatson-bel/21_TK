@@ -28,7 +28,7 @@ STATS_HTML_FILE = "stats.html"
 
 TELEGRAM_API_URL = f"https://api.telegram.org/bot{BOT_TOKEN}"
 POLL_INTERVAL = 2.0
-FINALIZE_WAIT_SECONDS = 30
+FINALIZE_WAIT_SECONDS = 300
 
 
 # =====================================================================
