@@ -492,6 +492,44 @@ def check_predictions():
             if not target:
                 continue
 
+            # -------------------------------------------------------
+            # ТАЙМАУТ ДЛЯ PREPARING (30 минут)
+            # -------------------------------------------------------
+
+            created_at_str = prediction.get("created_at")
+
+            if created_at_str:
+
+                try:
+
+                    created_at = datetime.fromisoformat(created_at_str)
+
+                    if now - created_at > timedelta(minutes=30):
+
+                        prediction["status"] = "return"
+                        prediction["close_reason"] = "preparing_timeout"
+                        prediction["closed_at"] = now.isoformat()
+
+                        warning_id = prediction.get("warning_message_id")
+
+                        if warning_id:
+                            telegram_delete(warning_id)
+                            prediction["warning_message_id"] = None
+
+                        apply_return(prediction)
+
+                        print(
+                            f"♻️ ПРИНУДИТЕЛЬНЫЙ ВОЗВРАТ #N{target} "
+                            f"(preparing > 30 минут)",
+                            flush=True,
+                        )
+
+                        changed = True
+                        continue
+
+                except Exception:
+                    pass
+
             if not prediction.get("warning_sent"):
 
                 warning_game = add_game_offset(target, -12)
