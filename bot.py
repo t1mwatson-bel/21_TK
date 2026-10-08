@@ -353,6 +353,7 @@ def create_prediction(game):
             return None
 
     base_bet = get_current_bet()
+    cf = get_dealer_cf(predicted_card_main)
 
     prediction = {
 
@@ -376,6 +377,8 @@ def create_prediction(game):
 
         "base_bet": base_bet,
         "bet": base_bet,
+
+        "cf": cf,
 
         "status": "preparing",
         "warning_sent": False,
