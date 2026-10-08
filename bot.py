@@ -59,6 +59,8 @@ from bank import (
 EXTRA_TARGET_OFFSET = 1442     # цель = триггер + 1442 (завтра, та же игра)
 EXTRA_SEND_BEFORE = 7          # отправка за 7 игр до цели
 
+SEND_AFTER_HOURS = 23          # отправка/проверка через 23 часа
+
 
 # =====================================================================
 # ПРОВЕРКА ENV
@@ -278,9 +280,6 @@ def create_prediction(trigger_game):
     extra_target = add_game_offset(trigger_number, EXTRA_TARGET_OFFSET)
     extra_send_game = add_game_offset(extra_target, -EXTRA_SEND_BEFORE)
 
-    # Запоминаем номер последней игры на момент создания прогноза
-    created_at_game = max(games_cache.keys()) if games_cache else trigger_number
-
     # Проверка дубля
     for old in predictions:
         if old.get("status") not in ("pending", "scheduled"):
@@ -308,9 +307,6 @@ def create_prediction(trigger_game):
         "target_number": extra_target,
 
         "send_game_number": extra_send_game,
-
-        # Номер последней игры на момент создания
-        "created_at_game": created_at_game,
 
         "base_bet": base_bet,
 
@@ -383,34 +379,41 @@ def send_prediction(prediction):
 def send_scheduled_predictions():
 
     changed = False
+    now = datetime.now(MOSCOW_TZ)
 
     for prediction in predictions:
 
         if prediction.get("status") != "scheduled":
             continue
 
+        # Проверяем, что прошло >= 23 часов с создания
+        created_at_str = prediction.get("created_at", "")
+
+        if created_at_str:
+            try:
+                created_at = datetime.fromisoformat(created_at_str)
+
+                if now - created_at < timedelta(hours=SEND_AFTER_HOURS):
+                    continue
+            except Exception:
+                pass
+
         send_game = prediction.get("send_game_number")
 
         if not send_game:
             continue
 
-        created_at_game = prediction.get("created_at_game", 0)
+        if send_game in finalized_games or send_game in games_cache:
 
-        # Отправляем только если игра пришла ПОСЛЕ создания прогноза
-        # (то есть на следующий цикл 1440)
-        if send_game > created_at_game:
+            print(
+                f"📤 Отправка прогноза "
+                f"#N{prediction['target_number']} "
+                f"(игра #N{send_game} пришла)",
+                flush=True,
+            )
 
-            if send_game in finalized_games or send_game in games_cache:
-
-                print(
-                    f"📤 Отправка прогноза "
-                    f"#N{prediction['target_number']} "
-                    f"(игра #N{send_game} пришла)",
-                    flush=True,
-                )
-
-                if send_prediction(prediction):
-                    changed = True
+            if send_prediction(prediction):
+                changed = True
 
     if changed:
         save_predictions()
@@ -460,6 +463,21 @@ def check_predictions():
 
         if not target:
             continue
+
+        # ---------------------------------------------------------
+        # Проверяем только прогнозы старше 23 часов
+        # ---------------------------------------------------------
+
+        created_at_str = prediction.get("created_at", "")
+
+        if created_at_str:
+            try:
+                created_at = datetime.fromisoformat(created_at_str)
+
+                if now - created_at < timedelta(hours=SEND_AFTER_HOURS):
+                    continue
+            except Exception:
+                pass
 
         # ---------------------------------------------------------
         # ТАЙМАУТ
@@ -675,6 +693,7 @@ def main():
     print("🎯 Алгоритм: первая карта игрока J/Q/K/A", flush=True)
     print("🎯 Масть: от игры триггер − 3", flush=True)
     print(f"📌 Цель: +{EXTRA_TARGET_OFFSET} (отправка за {EXTRA_SEND_BEFORE} игр)", flush=True)
+    print(f"⏰ Отправка/проверка через {SEND_AFTER_HOURS} ч", flush=True)
     print("💸 Ставок на прогноз: 2 (игрок + дилер)", flush=True)
     print(f"🔄 Догоны: Д0..Д{DOGON_GAMES}", flush=True)
     print(f"⏰ Таймаут → возврат: {PREDICTION_TIMEOUT_MINUTES} мин", flush=True)
