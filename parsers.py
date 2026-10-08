@@ -288,33 +288,21 @@ def find_trigger(game):
 
         J/Q/K/A → 10
 
-    Например:
-
-        K♣ A♣ 10♣
-              ↑
-            10♣
-
     Карта непосредственно перед 10:
-        A♣
+        предыдущая карта
 
     Прогноз:
-        A + масть десятки = A♣
+        ранг предыдущей + масть 10
 
     ВАЖНО:
-
-    - масть берётся ОТ 10
-    - ранг берётся ОТ карты перед 10
-    - A тоже является допустимым рангом
-    - количество карт игрока определяет задержку:
-
-        2 карты → +20
-        3 карты → +30
-        4 карты → +40
-        5 карт → +50
-
-    Если подходящего J/Q/K/A перед 10 нет — None.
-
-    Если таких комбинаций несколько — берём первую.
+        - масть берётся ОТ 10
+        - ранг берётся ОТ карты перед 10
+        - A тоже является допустимым рангом
+        - количество карт игрока определяет задержку:
+            2 карты → +20
+            3 карты → +30
+            4 карты → +40
+            5 карт → +50
     """
 
     player = game.get("player_cards", [])
@@ -335,23 +323,11 @@ def find_trigger(game):
             previous.get("rank")
         )
 
-        # -----------------------------------------------------------
-        # Текущая карта должна быть 10
-        # -----------------------------------------------------------
-
         if current_rank != "10":
             continue
 
-        # -----------------------------------------------------------
-        # Перед 10 допускаем J/Q/K/A
-        # -----------------------------------------------------------
-
         if previous_rank not in {"J", "Q", "K", "A"}:
             continue
-
-        # -----------------------------------------------------------
-        # Масть берём именно от 10
-        # -----------------------------------------------------------
 
         predicted_suit = normalize_suit(
             current.get("suit")
@@ -360,17 +336,9 @@ def find_trigger(game):
         if not predicted_suit:
             continue
 
-        # -----------------------------------------------------------
-        # Прогнозируемая карта
-        # -----------------------------------------------------------
-
         predicted_card = (
             f"{previous_rank}{predicted_suit}"
         )
-
-        # -----------------------------------------------------------
-        # Количество карт игрока
-        # -----------------------------------------------------------
 
         card_count = len(player)
 
@@ -397,13 +365,6 @@ def find_trigger(game):
 # =====================================================================
 
 def find_card_in_dealer(game, target_card):
-    """
-    Ищет КОНКРЕТНУЮ карту только у дилера.
-
-    Например target_card = A♣
-
-    Ищем A♣ только в dealer_cards.
-    """
 
     if not target_card:
         return None
@@ -439,18 +400,10 @@ def find_card_in_dealer(game, target_card):
 
 
 # =====================================================================
-# ПОИСК КАРТЫ У ИГРОКА И ДИЛЕРА (НОВАЯ)
+# ПОИСК КАРТЫ У ИГРОКА И ДИЛЕРА (старая функция)
 # =====================================================================
 
 def find_card_in_game(game, target_card):
-    """
-    Ищет КОНКРЕТНУЮ карту и у игрока, и у дилера.
-
-    Например target_card = A♣
-
-    Ищем A♣ в player_cards + dealer_cards.
-    Если найдена хотя бы в одной руке — возвращаем текст карты.
-    """
 
     if not target_card:
         return None
@@ -469,10 +422,6 @@ def find_card_in_game(game, target_card):
     if not target_suit:
         return None
 
-    # ---------------------------------------------------------------
-    # Ищем у ИГРОКА
-    # ---------------------------------------------------------------
-
     for card in game.get("player_cards", []):
 
         rank = normalize_rank(card.get("rank"))
@@ -480,10 +429,6 @@ def find_card_in_game(game, target_card):
 
         if rank == target_rank and suit == target_suit:
             return card_to_text(card)
-
-    # ---------------------------------------------------------------
-    # Ищем у ДИЛЕРА
-    # ---------------------------------------------------------------
 
     for card in game.get("dealer_cards", []):
 
@@ -494,3 +439,125 @@ def find_card_in_game(game, target_card):
             return card_to_text(card)
 
     return None
+
+
+# =====================================================================
+# ПАРНАЯ МАСТЬ (для дополнительного прогноза)
+# =====================================================================
+
+# Пары мастей: ♦️↔♠️, ♥️↔♣️
+SUIT_PAIRS = {
+    "♦️": "♠️",
+    "♠️": "♦️",
+    "♥️": "♣️",
+    "♣️": "♥️",
+}
+
+
+def get_extra_card(card):
+    """
+    Возвращает парную карту по масти.
+
+    Пример:
+        K♦️ → K♠️
+        A♥️ → A♣️
+        Q♠️ → Q♦️
+
+    Если масть не найдена — возвращает None.
+    """
+
+    if not card:
+        return None
+
+    match = re.match(
+        r"(10|[2-9AJQK])(♠️|♣️|♦️|♥️)$",
+        card,
+    )
+
+    if not match:
+        return None
+
+    rank = match.group(1)
+    suit = match.group(2)
+
+    extra_suit = SUIT_PAIRS.get(suit)
+
+    if not extra_suit:
+        return None
+
+    return f"{rank}{extra_suit}"
+
+
+# =====================================================================
+# ПОИСК НЕСКОЛЬКИХ КАРТ В ИГРЕ
+# =====================================================================
+
+def find_cards_in_game(game, cards):
+    """
+    Ищет список карт и у игрока, и у дилера.
+
+    cards — список строк, например ["K♦️", "K♠️"].
+
+    Возвращает список словарей:
+        [
+            {"card": "K♦️", "where": "dealer"},
+            {"card": "K♠️", "where": "player"},
+        ]
+
+    where: "player" | "dealer" | None
+    """
+
+    if not cards:
+        return []
+
+    result = []
+
+    for target_card in cards:
+
+        if not target_card:
+            continue
+
+        match = re.match(
+            r"(10|[2-9AJQK])(♠️|♣️|♦️|♥️)$",
+            target_card,
+        )
+
+        if not match:
+            continue
+
+        target_rank = match.group(1)
+        target_suit = normalize_suit(match.group(2))
+
+        if not target_suit:
+            continue
+
+        where = None
+
+        # Ищем у игрока
+        for card in game.get("player_cards", []):
+
+            rank = normalize_rank(card.get("rank"))
+            suit = normalize_suit(card.get("suit"))
+
+            if rank == target_rank and suit == target_suit:
+                where = "player"
+                break
+
+        # Если не нашли — ищем у дилера
+        if where is None:
+
+            for card in game.get("dealer_cards", []):
+
+                rank = normalize_rank(card.get("rank"))
+                suit = normalize_suit(card.get("suit"))
+
+                if rank == target_rank and suit == target_suit:
+                    where = "dealer"
+                    break
+
+        result.append({
+            "card": target_card,
+            "where": where,
+        })
+
+    return result
