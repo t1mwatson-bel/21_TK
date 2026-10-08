@@ -493,7 +493,7 @@ def check_predictions():
                 continue
 
             # -------------------------------------------------------
-            # ТАЙМАУТ ДЛЯ PREPARING (30 минут)
+            # ТАЙМАУТ ДЛЯ PREPARING (70 минут)
             # -------------------------------------------------------
 
             created_at_str = prediction.get("created_at")
@@ -504,7 +504,7 @@ def check_predictions():
 
                     created_at = datetime.fromisoformat(created_at_str)
 
-                    if now - created_at > timedelta(minutes=30):
+                    if now - created_at > timedelta(minutes=70):
 
                         prediction["status"] = "return"
                         prediction["close_reason"] = "preparing_timeout"
@@ -520,7 +520,7 @@ def check_predictions():
 
                         print(
                             f"♻️ ПРИНУДИТЕЛЬНЫЙ ВОЗВРАТ #N{target} "
-                            f"(preparing > 30 минут)",
+                            f"(preparing > 70 минут)",
                             flush=True,
                         )
 
@@ -580,7 +580,7 @@ def check_predictions():
 
                 if (
                     now - sent_at
-                    > timedelta(minutes=PREDICTION_TIMEOUT_MINUTES)
+                    > timedelta(minutes=70)
                 ):
 
                     prediction["status"] = "return"
@@ -596,7 +596,7 @@ def check_predictions():
 
                     print(
                         f"♻️ ВОЗВРАТ #N{target} "
-                        f"(timeout > {PREDICTION_TIMEOUT_MINUTES} мин)",
+                        f"(timeout > 70 мин)",
                         flush=True,
                     )
 
