@@ -5,8 +5,6 @@ import time
 from datetime import datetime
 from flask import Flask, jsonify, render_template
 
-import os
-
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 app = Flask(
@@ -17,6 +15,14 @@ app = Flask(
 
 PREDICTIONS_FILE = os.getenv("PREDICTIONS_FILE", "predictions.json")
 PORT = int(os.getenv("PORT", "8080"))
+
+# Импорт банка
+try:
+    from bank import get_bank_summary, get_bank_history
+    BANK_AVAILABLE = True
+except Exception as e:
+    print(f"⚠️ Не удалось импортировать bank.py: {e}")
+    BANK_AVAILABLE = False
 
 
 # ============================================================
@@ -260,6 +266,43 @@ def calculate_max_streak(predictions):
         "hit": max_hit,
         "miss": max_miss
     }
+
+# ============================================================
+# API БАНКА
+# ============================================================
+
+@app.route("/api/bank")
+def api_bank():
+    """Возвращает сводку по банку."""
+
+    if not BANK_AVAILABLE:
+        return jsonify({
+            "error": "bank.py недоступен"
+        }), 500
+
+    try:
+        summary = get_bank_summary()
+        return jsonify(summary)
+    except Exception as e:
+        print(f"⚠️ Ошибка api_bank: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/bank/history")
+def api_bank_history():
+    """Возвращает историю ставок банка."""
+
+    if not BANK_AVAILABLE:
+        return jsonify({
+            "error": "bank.py недоступен"
+        }), 500
+
+    try:
+        history = get_bank_history(limit=100)
+        return jsonify(history)
+    except Exception as e:
+        print(f"⚠️ Ошибка api_bank_history: {e}")
+        return jsonify({"error": str(e)}), 500
 
 
 # ============================================================
