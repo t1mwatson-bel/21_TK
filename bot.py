@@ -278,6 +278,9 @@ def create_prediction(trigger_game):
     extra_target = add_game_offset(trigger_number, EXTRA_TARGET_OFFSET)
     extra_send_game = add_game_offset(extra_target, -EXTRA_SEND_BEFORE)
 
+    # Запоминаем номер последней игры на момент создания прогноза
+    created_at_game = max(games_cache.keys()) if games_cache else trigger_number
+
     # Проверка дубля
     for old in predictions:
         if old.get("status") not in ("pending", "scheduled"):
@@ -305,6 +308,9 @@ def create_prediction(trigger_game):
         "target_number": extra_target,
 
         "send_game_number": extra_send_game,
+
+        # Номер последней игры на момент создания
+        "created_at_game": created_at_game,
 
         "base_bet": base_bet,
 
@@ -388,17 +394,23 @@ def send_scheduled_predictions():
         if not send_game:
             continue
 
-        if send_game in finalized_games or send_game in games_cache:
+        created_at_game = prediction.get("created_at_game", 0)
 
-            print(
-                f"📤 Отправка прогноза "
-                f"#N{prediction['target_number']} "
-                f"(игра #N{send_game} пришла)",
-                flush=True,
-            )
+        # Отправляем только если игра пришла ПОСЛЕ создания прогноза
+        # (то есть на следующий цикл 1440)
+        if send_game > created_at_game:
 
-            if send_prediction(prediction):
-                changed = True
+            if send_game in finalized_games or send_game in games_cache:
+
+                print(
+                    f"📤 Отправка прогноза "
+                    f"#N{prediction['target_number']} "
+                    f"(игра #N{send_game} пришла)",
+                    flush=True,
+                )
+
+                if send_prediction(prediction):
+                    changed = True
 
     if changed:
         save_predictions()
