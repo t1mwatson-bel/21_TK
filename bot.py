@@ -56,10 +56,24 @@ from bank import (
 # КОНСТАНТЫ
 # =====================================================================
 
-EXTRA_TARGET_OFFSET = 1442     # цель = триггер + 1442 (завтра, та же игра)
-EXTRA_SEND_BEFORE = 7          # отправка за 7 игр до цели
+# ВАЖНО:
+# Цель теперь НЕ определяется через +1442.
+#
+# Триггер сегодня:
+#   #N500
+#
+# Цель:
+#   #N500 следующего игрового дня.
+#
+# Игровой день начинается в 03:00 МСК.
 
-SEND_AFTER_HOURS = 23          # отправка/проверка через 23 часа
+GAME_CYCLE = 1440
+
+EXTRA_SEND_BEFORE = 7
+
+PREDICTION_TIMEOUT_MINUTES = 20
+
+FINALIZE_WAIT_SECONDS = 30
 
 
 # =====================================================================
@@ -84,15 +98,152 @@ if not CHANNEL_STATS:
 # =====================================================================
 
 games_cache = {}
+
 finalized_games = {}
+
 pending_games = {}
 
 predictions = []
 
 last_cleanup_date = None
 
-PREDICTION_TIMEOUT_MINUTES = 20
-FINALIZE_WAIT_SECONDS = 30
+
+# =====================================================================
+# ИГРОВОЙ ДЕНЬ
+# =====================================================================
+
+def get_game_day(now=None):
+    """
+    Возвращает игровой день.
+
+    Игровые сутки начинаются в 03:00 МСК.
+
+    Например:
+
+    2026-10-08 02:59 МСК
+        -> игровой день 2026-10-07
+
+    2026-10-08 03:00 МСК
+        -> игровой день 2026-10-08
+    """
+
+    if now is None:
+        now = datetime.now(MOSCOW_TZ)
+
+    if now.tzinfo is None:
+        now = MOSCOW_TZ.localize(now)
+
+    cleanup_time = dtime(CLEANUP_HOUR, CLEANUP_MINUTE)
+
+    if now.time() < cleanup_time:
+        return (now.date() - timedelta(days=1)).isoformat()
+
+    return now.date().isoformat()
+
+
+def parse_game_day(value):
+    """
+    Преобразует YYYY-MM-DD в date.
+    """
+
+    if not value:
+        return None
+
+    try:
+        return datetime.strptime(
+            str(value),
+            "%Y-%m-%d",
+        ).date()
+
+    except Exception:
+        return None
+
+
+def game_day_plus(game_day, days):
+    """
+    Прибавляет дни к игровому дню.
+
+    Возвращает строку YYYY-MM-DD.
+    """
+
+    date_value = parse_game_day(game_day)
+
+    if date_value is None:
+        return None
+
+    return (date_value + timedelta(days=days)).isoformat()
+
+
+def game_day_for_offset(base_day, base_number, offset):
+    """
+    Определяет игровой день конкретной игры после offset.
+
+    Например:
+
+    target = #1439
+    D0 -> #1439, тот же день
+    D1 -> #1440, тот же день
+    D2 -> #1, следующий игровой день
+    """
+
+    base_number = int(base_number)
+    offset = int(offset)
+
+    raw_position = (base_number - 1) + offset
+
+    day_shift = raw_position // GAME_CYCLE
+
+    game_day = parse_game_day(base_day)
+
+    if game_day is None:
+        return None
+
+    result_day = game_day + timedelta(days=day_shift)
+
+    return result_day.isoformat()
+
+
+def send_game_day_for_target(target_day, target_number):
+    """
+    Определяет игровой день игры, за которой нужно отправить прогноз.
+
+    Например:
+
+    цель #100
+    отправка #93
+    отправка в тот же игровой день.
+
+    цель #3
+    отправка #1436
+    отправка происходит в предыдущий игровой день.
+    """
+
+    target_day_date = parse_game_day(target_day)
+
+    if target_day_date is None:
+        return None
+
+    target_number = int(target_number)
+
+    send_number = add_game_offset(
+        target_number,
+        -EXTRA_SEND_BEFORE,
+    )
+
+    # Если target #1..#7,
+    # то семь игр назад мы попадаем в предыдущий игровой день.
+    if target_number <= EXTRA_SEND_BEFORE:
+        target_day_date -= timedelta(days=1)
+
+    return target_day_date.isoformat()
+
+
+def is_current_game_day(game_day):
+    """
+    Проверяет, является ли game_day текущим игровым днём.
+    """
+
+    return game_day == get_game_day()
 
 
 # =====================================================================
@@ -101,18 +252,27 @@ FINALIZE_WAIT_SECONDS = 30
 
 def should_cleanup_now(now=None):
     global last_cleanup_date
+
     if now is None:
         now = datetime.now(MOSCOW_TZ)
+
     if last_cleanup_date == now.date():
         return False
+
     cleanup_time = dtime(CLEANUP_HOUR, CLEANUP_MINUTE)
+
     if now.time() >= cleanup_time:
         return True
+
     return False
 
 
 def cleanup_nightly():
-    global games_cache, finalized_games, pending_games, predictions, last_cleanup_date
+    global games_cache
+    global finalized_games
+    global pending_games
+    global predictions
+    global last_cleanup_date
 
     now = datetime.now(MOSCOW_TZ)
 
@@ -147,26 +307,56 @@ def cleanup_nightly():
 
 def load_predictions():
     global predictions
+
     try:
         if not os.path.exists(PREDICTIONS_FILE):
             predictions = []
             return
-        with open(PREDICTIONS_FILE, "r", encoding="utf-8") as f:
+
+        with open(
+            PREDICTIONS_FILE,
+            "r",
+            encoding="utf-8",
+        ) as f:
             data = json.load(f)
+
         predictions = data if isinstance(data, list) else []
+
     except Exception as e:
-        print(f"⚠️ Ошибка чтения {PREDICTIONS_FILE}: {e}", flush=True)
+        print(
+            f"⚠️ Ошибка чтения {PREDICTIONS_FILE}: {e}",
+            flush=True,
+        )
+
         predictions = []
 
 
 def save_predictions():
     try:
         tmp = PREDICTIONS_FILE + ".tmp"
-        with open(tmp, "w", encoding="utf-8") as f:
-            json.dump(predictions, f, ensure_ascii=False, indent=2)
-        os.replace(tmp, PREDICTIONS_FILE)
+
+        with open(
+            tmp,
+            "w",
+            encoding="utf-8",
+        ) as f:
+            json.dump(
+                predictions,
+                f,
+                ensure_ascii=False,
+                indent=2,
+            )
+
+        os.replace(
+            tmp,
+            PREDICTIONS_FILE,
+        )
+
     except Exception as e:
-        print(f"⚠️ Ошибка сохранения прогнозов: {e}", flush=True)
+        print(
+            f"⚠️ Ошибка сохранения прогнозов: {e}",
+            flush=True,
+        )
 
 
 # =====================================================================
@@ -174,9 +364,15 @@ def save_predictions():
 # =====================================================================
 
 def has_active_prediction():
+
     for prediction in predictions:
-        if prediction.get("status") in ("pending", "scheduled"):
+
+        if prediction.get("status") in (
+            "pending",
+            "scheduled",
+        ):
             return True
+
     return False
 
 
@@ -189,31 +385,60 @@ def make_prediction_message(prediction):
     target = prediction["target_number"]
     card = prediction["predicted_card"]
 
-    return f"🎯 Игра: <b>#N{target}</b>: {card}"
+    return (
+        f"🎯 Игра: <b>#N{target}</b>: {card}"
+    )
 
 
-def make_result_message(prediction, result, found_card=None):
+def make_result_message(
+    prediction,
+    result,
+    found_card=None,
+):
 
     target = prediction["target_number"]
     card = prediction["predicted_card"]
 
     if result == "win":
-        where = found_card.get("where") if found_card else None
+
+        where = (
+            found_card.get("where")
+            if found_card
+            else None
+        )
+
         if where == "dealer":
             where_text = " (дилер)"
+
         elif where == "player":
             where_text = " (игрок)"
+
         else:
             where_text = ""
-        return f"🎯 Игра: <b>#N{target}</b>: {card} ✅{where_text}"
+
+        return (
+            f"🎯 Игра: <b>#N{target}</b>: "
+            f"{card} ✅{where_text}"
+        )
 
     elif result == "lose":
-        return f"🎯 Игра: <b>#N{target}</b>: {card} ❌"
+
+        return (
+            f"🎯 Игра: <b>#N{target}</b>: "
+            f"{card} ❌"
+        )
 
     elif result == "return":
-        return f"🎯 Игра: <b>#N{target}</b>: {card} ♻️"
 
-    return f"🎯 Игра: <b>#N{target}</b>: {card} ⚠️"
+        return (
+            f"🎯 Игра: <b>#N{target}</b>: "
+            f"{card} ♻️"
+        )
+
+    return (
+        f"🎯 Игра: <b>#N{target}</b>: "
+        f"{card} ⚠️"
+    )
 
 
 # =====================================================================
@@ -221,20 +446,34 @@ def make_result_message(prediction, result, found_card=None):
 # =====================================================================
 
 def is_waiting_message(text):
+
     if not text:
         return True
+
     if "Ожидание" in text:
         return True
+
     if "⏳" in text:
         return True
-    groups = re.findall(r"\(([^()]*)\)", text)
+
+    groups = re.findall(
+        r"\(([^()]*)\)",
+        text,
+    )
+
     if len(groups) < 2:
         return True
-    card_pattern = re.compile(r"[2-9AJQK10][♠♣♦♥]")
+
+    card_pattern = re.compile(
+        r"[2-9AJQK10][♠♣♦♥]"
+    )
+
     if not card_pattern.search(groups[0]):
         return True
+
     if not card_pattern.search(groups[1]):
         return True
+
     return False
 
 
@@ -250,89 +489,283 @@ def create_prediction(trigger_game):
         return None
 
     trigger_number = trigger_game["game_number"]
-    trigger_id = trigger_game.get("game_id")
+
+    trigger_id = trigger_game.get(
+        "game_id"
+    )
 
     rank = trigger["rank"]
 
-    # Масть из игры триггер − 3
-    suit_game_number = add_game_offset(trigger_number, -3)
-    suit_game = games_cache.get(suit_game_number)
+    # ---------------------------------------------------------------
+    # ИГРОВОЙ ДЕНЬ ТРИГГЕРА
+    # ---------------------------------------------------------------
+
+    trigger_day = trigger_game.get(
+        "game_day"
+    )
+
+    if not trigger_day:
+        trigger_day = get_game_day()
+
+    # ---------------------------------------------------------------
+    # МАСТЬ ИЗ ИГРЫ ТРИГГЕР - 3
+    # ---------------------------------------------------------------
+
+    suit_game_number = add_game_offset(
+        trigger_number,
+        -3,
+    )
+
+    suit_game = games_cache.get(
+        suit_game_number
+    )
 
     if not suit_game:
+
         print(
             f"⏳ Триггер #N{trigger_number} ({rank}) — "
             f"ждём игру #N{suit_game_number} для масти",
             flush=True,
         )
+
         return None
 
-    prediction_data = build_prediction_v2(trigger_game, suit_game)
+    prediction_data = build_prediction_v2(
+        trigger_game,
+        suit_game,
+    )
 
     if not prediction_data:
         return None
 
-    predicted_card = prediction_data["predicted_card"]
-    predicted_rank = prediction_data["predicted_rank"]
-    predicted_suit = prediction_data["predicted_suit"]
+    predicted_card = prediction_data[
+        "predicted_card"
+    ]
+
+    predicted_rank = prediction_data[
+        "predicted_rank"
+    ]
+
+    predicted_suit = prediction_data[
+        "predicted_suit"
+    ]
 
     base_bet = get_current_bet()
 
-    extra_target = add_game_offset(trigger_number, EXTRA_TARGET_OFFSET)
-    extra_send_game = add_game_offset(extra_target, -EXTRA_SEND_BEFORE)
+    # ---------------------------------------------------------------
+    # ЦЕЛЬ = ТА ЖЕ ПОЗИЦИЯ СЛЕДУЮЩЕГО ИГРОВОГО ДНЯ
+    # ---------------------------------------------------------------
 
-    # Проверка дубля
+    target_day = game_day_plus(
+        trigger_day,
+        1,
+    )
+
+    if not target_day:
+        return None
+
+    target_number = trigger_number
+
+    # ---------------------------------------------------------------
+    # ИГРА, ПРИ КОТОРОЙ ОТПРАВЛЯЕМ ПРОГНОЗ
+    # ---------------------------------------------------------------
+
+    send_game_number = add_game_offset(
+        target_number,
+        -EXTRA_SEND_BEFORE,
+    )
+
+    send_game_day = send_game_day_for_target(
+        target_day,
+        target_number,
+    )
+
+    if not send_game_day:
+        return None
+
+    # ---------------------------------------------------------------
+    # ПРОВЕРКА ДУБЛЯ
+    # ---------------------------------------------------------------
+
     for old in predictions:
-        if old.get("status") not in ("pending", "scheduled"):
+
+        if old.get("status") not in (
+            "pending",
+            "scheduled",
+        ):
             continue
+
         if (
-            old.get("target_number") == extra_target
-            and old.get("predicted_card") == predicted_card
+            old.get("target_day") == target_day
+            and old.get("target_number") == target_number
+            and old.get("predicted_card")
+            == predicted_card
         ):
             return None
 
+    # ---------------------------------------------------------------
+    # СОЗДАЁМ ПРОГНОЗ
+    # ---------------------------------------------------------------
+
     prediction = {
-        "algorithm": "first_player_card_v2_extra",
 
-        "trigger_number": trigger_number,
-        "trigger_game_id": trigger_id,
-        "trigger_card": trigger["trigger_card"],
+        "algorithm":
+            "first_player_card_v2_next_day",
 
-        "suit_game_number": suit_game_number,
+        # ТРИГГЕР
+        "trigger_number":
+            trigger_number,
 
-        "predicted_rank": predicted_rank,
-        "predicted_suit": predicted_suit,
-        "predicted_card": predicted_card,
+        "trigger_game_id":
+            trigger_id,
 
-        "target_offset": EXTRA_TARGET_OFFSET,
-        "target_number": extra_target,
+        "trigger_day":
+            trigger_day,
 
-        "send_game_number": extra_send_game,
+        "trigger_card":
+            trigger["trigger_card"],
 
-        "base_bet": base_bet,
+        # ИГРА ДЛЯ МАСТИ
+        "suit_game_number":
+            suit_game_number,
 
-        "status": "scheduled",
-        "dogon": 0,
+        "suit_game_day":
+            trigger_day,
 
-        "created_at": datetime.now(MOSCOW_TZ).isoformat(),
-        "sent_at": None,
-        "closed_at": None,
-        "message_id": None,
-        "result_game": None,
-        "found_card": None,
-        "close_reason": None,
+        # ПРОГНОЗ
+        "predicted_rank":
+            predicted_rank,
+
+        "predicted_suit":
+            predicted_suit,
+
+        "predicted_card":
+            predicted_card,
+
+        # ЦЕЛЬ
+        "target_offset":
+            GAME_CYCLE,
+
+        "target_number":
+            target_number,
+
+        "target_day":
+            target_day,
+
+        # ОТПРАВКА
+        "send_game_number":
+            send_game_number,
+
+        "send_game_day":
+            send_game_day,
+
+        # БАНК
+        "base_bet":
+            base_bet,
+
+        # СТАТУС
+        "status":
+            "scheduled",
+
+        "dogon":
+            0,
+
+        # ВРЕМЯ
+        "created_at":
+            datetime.now(
+                MOSCOW_TZ
+            ).isoformat(),
+
+        "sent_at":
+            None,
+
+        "closed_at":
+            None,
+
+        "message_id":
+            None,
+
+        "result_game":
+            None,
+
+        "result_game_day":
+            None,
+
+        "found_card":
+            None,
+
+        "close_reason":
+            None,
     }
 
-    predictions.append(prediction)
+    predictions.append(
+        prediction
+    )
+
     save_predictions()
 
     print("", flush=True)
-    print("📌 ПРОГНОЗ СОЗДАН (ожидает отправки)", flush=True)
-    print(f"📌 Триггер: #N{trigger_number}", flush=True)
-    print(f"🃏 Первая карта: {trigger['trigger_card']}", flush=True)
-    print(f"🎨 Масть из #N{suit_game_number}: {predicted_suit}", flush=True)
-    print(f"🎯 Прогноз: {predicted_card}", flush=True)
-    print(f"🎯 Цель: #N{extra_target}", flush=True)
-    print(f"📤 Отправка при игре: #N{extra_send_game}", flush=True)
+
+    print(
+        "📌 ПРОГНОЗ СОЗДАН "
+        "(цель на следующий игровой день)",
+        flush=True,
+    )
+
+    print(
+        f"📌 Триггер: "
+        f"#N{trigger_number}",
+        flush=True,
+    )
+
+    print(
+        f"📅 День триггера: "
+        f"{trigger_day}",
+        flush=True,
+    )
+
+    print(
+        f"🃏 Первая карта: "
+        f"{trigger['trigger_card']}",
+        flush=True,
+    )
+
+    print(
+        f"🎨 Масть из "
+        f"#N{suit_game_number}: "
+        f"{predicted_suit}",
+        flush=True,
+    )
+
+    print(
+        f"🎯 Прогноз: "
+        f"{predicted_card}",
+        flush=True,
+    )
+
+    print(
+        f"🎯 ЦЕЛЬ ЗАВТРА: "
+        f"#N{target_number}",
+        flush=True,
+    )
+
+    print(
+        f"📅 День цели: "
+        f"{target_day}",
+        flush=True,
+    )
+
+    print(
+        f"📤 Отправка: "
+        f"#N{send_game_number}",
+        flush=True,
+    )
+
+    print(
+        f"📅 День отправки: "
+        f"{send_game_day}",
+        flush=True,
+    )
 
     return prediction
 
@@ -343,22 +776,40 @@ def create_prediction(trigger_game):
 
 def send_prediction(prediction):
 
-    message = make_prediction_message(prediction)
+    message = make_prediction_message(
+        prediction
+    )
 
-    message_id = telegram_send(message)
+    message_id = telegram_send(
+        message
+    )
 
     if not message_id:
+
         print(
-            f"❌ Не удалось отправить #N{prediction['target_number']}",
+            f"❌ Не удалось отправить "
+            f"#N{prediction['target_number']}",
             flush=True,
         )
+
         return False
 
-    prediction["message_id"] = message_id
-    prediction["sent_at"] = datetime.now(MOSCOW_TZ).isoformat()
+    prediction["message_id"] = (
+        message_id
+    )
+
+    prediction["sent_at"] = (
+        datetime.now(
+            MOSCOW_TZ
+        ).isoformat()
+    )
+
     prediction["status"] = "pending"
 
-    apply_dogon_bet(prediction, 0)
+    apply_dogon_bet(
+        prediction,
+        0,
+    )
 
     save_predictions()
 
@@ -366,6 +817,12 @@ def send_prediction(prediction):
         f"📤 ПРОГНОЗ ОТПРАВЛЕН: "
         f"#N{prediction['target_number']} "
         f"{prediction['predicted_card']}",
+        flush=True,
+    )
+
+    print(
+        f"📅 Целевой игровой день: "
+        f"{prediction.get('target_day')}",
         flush=True,
     )
 
@@ -379,41 +836,91 @@ def send_prediction(prediction):
 def send_scheduled_predictions():
 
     changed = False
-    now = datetime.now(MOSCOW_TZ)
+
+    current_day = get_game_day()
 
     for prediction in predictions:
 
         if prediction.get("status") != "scheduled":
             continue
 
-        # Проверяем, что прошло >= 23 часов с создания
-        created_at_str = prediction.get("created_at", "")
+        target_day = prediction.get(
+            "target_day"
+        )
 
-        if created_at_str:
-            try:
-                created_at = datetime.fromisoformat(created_at_str)
+        send_day = prediction.get(
+            "send_game_day"
+        )
 
-                if now - created_at < timedelta(hours=SEND_AFTER_HOURS):
-                    continue
-            except Exception:
-                pass
+        send_number = prediction.get(
+            "send_game_number"
+        )
 
-        send_game = prediction.get("send_game_number")
-
-        if not send_game:
+        if not target_day or not send_day:
             continue
 
-        if send_game in finalized_games or send_game in games_cache:
+        if not send_number:
+            continue
 
+        # -----------------------------------------------------------
+        # Ещё не наступил день отправки
+        # -----------------------------------------------------------
+
+        if current_day < send_day:
+            continue
+
+        # -----------------------------------------------------------
+        # Если мы уже ушли дальше нужного дня,
+        # прогноз лучше не отправлять задним числом.
+        # -----------------------------------------------------------
+
+        if current_day > target_day:
             print(
-                f"📤 Отправка прогноза "
-                f"#N{prediction['target_number']} "
-                f"(игра #N{send_game} пришла)",
+                f"⚠️ Пропущена отправка "
+                f"#N{prediction.get('target_number')} "
+                f"(день цели уже прошёл)",
                 flush=True,
             )
+            continue
 
-            if send_prediction(prediction):
-                changed = True
+        # -----------------------------------------------------------
+        # Проверяем, что нужная игра отправки уже пришла
+        # -----------------------------------------------------------
+
+        if send_day == current_day:
+
+            if (
+                send_number not in finalized_games
+                and send_number not in games_cache
+            ):
+                continue
+
+        # -----------------------------------------------------------
+        # Для редкого случая, когда отправка происходит
+        # в предыдущий игровой день.
+        # -----------------------------------------------------------
+
+        elif send_day < current_day:
+
+            # Игра уже должна была пройти.
+            # Отправляем прогноз сразу.
+            pass
+
+        else:
+            continue
+
+        print(
+            f"📤 Отправка прогноза "
+            f"#N{prediction['target_number']} "
+            f"(цель: {target_day}, "
+            f"отправка: #N{send_number})",
+            flush=True,
+        )
+
+        if send_prediction(
+            prediction
+        ):
+            changed = True
 
     if changed:
         save_predictions()
@@ -426,23 +933,111 @@ def send_scheduled_predictions():
 def finalize_pending_games():
 
     now = time.time()
+
     ready = []
 
-    for (game_number, info) in list(pending_games.items()):
-        last_update = info.get("last_update", info.get("first_seen", now))
-        if now - last_update >= FINALIZE_WAIT_SECONDS:
-            ready.append(game_number)
+    for (
+        game_number,
+        info,
+    ) in list(
+        pending_games.items()
+    ):
+
+        last_update = info.get(
+            "last_update",
+            info.get(
+                "first_seen",
+                now,
+            ),
+        )
+
+        if (
+            now - last_update
+            >= FINALIZE_WAIT_SECONDS
+        ):
+            ready.append(
+                game_number
+            )
 
     for game_number in ready:
-        info = pending_games.pop(game_number, None)
+
+        info = pending_games.pop(
+            game_number,
+            None,
+        )
+
         if not info:
             continue
-        text = info.get("text", "")
-        game = parse_game_message(text)
+
+        text = info.get(
+            "text",
+            "",
+        )
+
+        game = parse_game_message(
+            text
+        )
+
         if not game:
             continue
-        finalized_games[game_number] = game
-        print(f"✅ #N{game_number} → finalized", flush=True)
+
+        # Сохраняем игровой день
+        game["game_day"] = info.get(
+            "game_day",
+            get_game_day(),
+        )
+
+        finalized_games[
+            game_number
+        ] = game
+
+        print(
+            f"✅ #N{game_number} "
+            f"→ finalized "
+            f"({game['game_day']})",
+            flush=True,
+        )
+
+
+# =====================================================================
+# ПОЛУЧЕНИЕ ИГРЫ ДЛЯ КОНКРЕТНОГО ДНЯ
+# =====================================================================
+
+def get_finalized_game(
+    game_number,
+    game_day,
+):
+    """
+    Возвращает игру только если она относится
+    к нужному игровому дню.
+
+    Это важно, потому что #N1 существует
+    каждый игровой день.
+    """
+
+    if not game_day:
+        return None
+
+    current_day = get_game_day()
+
+    if game_day != current_day:
+        return None
+
+    game = finalized_games.get(
+        game_number
+    )
+
+    if not game:
+        return None
+
+    stored_day = game.get(
+        "game_day"
+    )
+
+    if stored_day != game_day:
+        return None
+
+    return game
 
 
 # =====================================================================
@@ -452,138 +1047,313 @@ def finalize_pending_games():
 def check_predictions():
 
     changed = False
-    now = datetime.now(MOSCOW_TZ)
+
+    now = datetime.now(
+        MOSCOW_TZ
+    )
+
+    current_day = get_game_day()
 
     for prediction in predictions:
 
         if prediction.get("status") != "pending":
             continue
 
-        target = prediction.get("target_number")
+        target = prediction.get(
+            "target_number"
+        )
 
-        if not target:
+        target_day = prediction.get(
+            "target_day"
+        )
+
+        if target is None:
             continue
 
-        # ---------------------------------------------------------
-        # Проверяем только прогнозы старше 23 часов
-        # ---------------------------------------------------------
+        if not target_day:
+            continue
 
-        created_at_str = prediction.get("created_at", "")
+        # -----------------------------------------------------------
+        # Проверяем только когда наступил игровой день цели
+        # -----------------------------------------------------------
 
-        if created_at_str:
-            try:
-                created_at = datetime.fromisoformat(created_at_str)
+        if current_day < target_day:
+            continue
 
-                if now - created_at < timedelta(hours=SEND_AFTER_HOURS):
-                    continue
-            except Exception:
-                pass
+        # -----------------------------------------------------------
+        # Если день цели уже полностью прошёл,
+        # дальше проверять нечего.
+        # -----------------------------------------------------------
 
-        # ---------------------------------------------------------
+        if current_day > target_day:
+            # Но если догоны перешли на следующий игровой день,
+            # разрешаем продолжить проверку ниже.
+            last_dogon_day = game_day_for_offset(
+                target_day,
+                target,
+                DOGON_GAMES,
+            )
+
+            if (
+                last_dogon_day
+                and current_day < last_dogon_day
+            ):
+                continue
+
+        # -----------------------------------------------------------
         # ТАЙМАУТ
-        # ---------------------------------------------------------
+        #
+        # ВАЖНО:
+        # Таймаут считается только после фактической отправки.
+        # Мы больше НЕ ждём 23 часа.
+        # -----------------------------------------------------------
 
-        sent_at_str = prediction.get("sent_at")
+        sent_at_str = prediction.get(
+            "sent_at"
+        )
 
         if sent_at_str:
+
             try:
-                sent_at = datetime.fromisoformat(sent_at_str)
 
-                if now - sent_at > timedelta(minutes=PREDICTION_TIMEOUT_MINUTES):
+                sent_at = datetime.fromisoformat(
+                    sent_at_str
+                )
 
-                    prediction["status"] = "return"
-                    prediction["close_reason"] = "timeout"
-                    prediction["closed_at"] = now.isoformat()
+                if (
+                    now - sent_at
+                    > timedelta(
+                        minutes=PREDICTION_TIMEOUT_MINUTES
+                    )
+                ):
 
-                    telegram_edit(
-                        prediction.get("message_id"),
-                        make_result_message(prediction, "return"),
+                    # НО:
+                    # Нельзя возвращать прогноз просто потому,
+                    # что целевая игра ещё не пришла.
+                    #
+                    # Проверяем, существует ли уже
+                    # нужная игра в потоке.
+
+                    target_game = get_finalized_game(
+                        target,
+                        target_day,
                     )
 
-                    apply_return(prediction)
+                    if target_game:
 
-                    print(
-                        f"♻️ ВОЗВРАТ #N{target} "
-                        f"(timeout > {PREDICTION_TIMEOUT_MINUTES} мин)",
-                        flush=True,
-                    )
+                        # Только если целевая игра действительно
+                        # уже завершена и есть все необходимые данные,
+                        # тогда таймаут имеет смысл.
 
-                    changed = True
-                    continue
+                        pass
+
             except Exception:
                 pass
 
-        # ---------------------------------------------------------
+        # -----------------------------------------------------------
         # ПОИСК КАРТЫ
-        # ---------------------------------------------------------
+        # -----------------------------------------------------------
 
-        current_dogon = prediction.get("dogon", 0)
+        current_dogon = prediction.get(
+            "dogon",
+            0,
+        )
 
         won = False
         found_card = None
         win_dogon = None
 
-        for dogon_index in range(0, DOGON_GAMES + 1):
+        for dogon_index in range(
+            0,
+            DOGON_GAMES + 1,
+        ):
 
-            game_number = add_game_offset(target, dogon_index)
-            game = finalized_games.get(game_number)
+            game_number = add_game_offset(
+                target,
+                dogon_index,
+            )
+
+            game_day = game_day_for_offset(
+                target_day,
+                target,
+                dogon_index,
+            )
+
+            game = get_finalized_game(
+                game_number,
+                game_day,
+            )
 
             if not game:
                 continue
 
-            found = find_card_in_game(game, prediction["predicted_card"])
+            found = find_card_in_game(
+                game,
+                prediction[
+                    "predicted_card"
+                ],
+            )
 
             if found:
+
                 won = True
+
                 found_card = found
+
                 win_dogon = dogon_index
+
                 break
+
+        # -----------------------------------------------------------
+        # WIN
+        # -----------------------------------------------------------
 
         if won:
 
-            prediction["status"] = "win"
-            prediction["result_game"] = add_game_offset(target, win_dogon)
-            prediction["found_card"] = found_card
-            prediction["dogon"] = win_dogon
-            prediction["closed_at"] = now.isoformat()
-
-            telegram_edit(
-                prediction.get("message_id"),
-                make_result_message(prediction, "win", found_card),
+            result_game = add_game_offset(
+                target,
+                win_dogon,
             )
 
-            apply_win(prediction, win_dogon, found_card)
+            result_game_day = game_day_for_offset(
+                target_day,
+                target,
+                win_dogon,
+            )
 
-            print("", flush=True)
-            print(f"✅ ПРОГНОЗ ЗАШЁЛ #N{target}", flush=True)
-            print(f"🎯 Карта: {prediction['predicted_card']}", flush=True)
-            print(f"🃏 Найдена: {found_card['card']} ({found_card['where']})", flush=True)
-            print(f"🔄 Догон: Д{win_dogon}", flush=True)
+            prediction["status"] = "win"
+
+            prediction["result_game"] = (
+                result_game
+            )
+
+            prediction["result_game_day"] = (
+                result_game_day
+            )
+
+            prediction["found_card"] = (
+                found_card
+            )
+
+            prediction["dogon"] = (
+                win_dogon
+            )
+
+            prediction["closed_at"] = (
+                now.isoformat()
+            )
+
+            telegram_edit(
+                prediction.get(
+                    "message_id"
+                ),
+                make_result_message(
+                    prediction,
+                    "win",
+                    found_card,
+                ),
+            )
+
+            apply_win(
+                prediction,
+                win_dogon,
+                found_card,
+            )
+
+            print(
+                "",
+                flush=True,
+            )
+
+            print(
+                f"✅ ПРОГНОЗ ЗАШЁЛ "
+                f"#N{target}",
+                flush=True,
+            )
+
+            print(
+                f"📅 День: "
+                f"{result_game_day}",
+                flush=True,
+            )
+
+            print(
+                f"🎯 Карта: "
+                f"{prediction['predicted_card']}",
+                flush=True,
+            )
+
+            print(
+                f"🃏 Найдена: "
+                f"{found_card['card']} "
+                f"({found_card['where']})",
+                flush=True,
+            )
+
+            print(
+                f"🔄 Догон: "
+                f"Д{win_dogon}",
+                flush=True,
+            )
 
             changed = True
+
             continue
 
-        # ---------------------------------------------------------
-        # ВСЕ ЛИ ИГРЫ ФИНАЛИЗИРОВАНЫ?
-        # ---------------------------------------------------------
+        # -----------------------------------------------------------
+        # ПРОВЕРЯЕМ, ЗАКОНЧИЛСЯ ЛИ УЖЕ ВЕСЬ ДИАПАЗОН Д0..Д3
+        # -----------------------------------------------------------
 
         all_finalized = True
 
-        for dogon_index in range(0, DOGON_GAMES + 1):
-            game_number = add_game_offset(target, dogon_index)
-            if game_number not in finalized_games:
+        for dogon_index in range(
+            0,
+            DOGON_GAMES + 1,
+        ):
+
+            game_number = add_game_offset(
+                target,
+                dogon_index,
+            )
+
+            game_day = game_day_for_offset(
+                target_day,
+                target,
+                dogon_index,
+            )
+
+            game = get_finalized_game(
+                game_number,
+                game_day,
+            )
+
+            if not game:
+
                 all_finalized = False
+
                 break
 
         if not all_finalized:
             continue
 
-        # LOSE
+        # -----------------------------------------------------------
+        # LOSE / ПЕРЕХОД НА СЛЕДУЮЩИЙ ДОН
+        # -----------------------------------------------------------
+
         if current_dogon < DOGON_GAMES:
 
-            next_dogon = current_dogon + 1
-            apply_lose(prediction, current_dogon)
-            prediction["dogon"] = next_dogon
+            next_dogon = (
+                current_dogon + 1
+            )
+
+            apply_lose(
+                prediction,
+                current_dogon,
+            )
+
+            prediction["dogon"] = (
+                next_dogon
+            )
 
             print(
                 f"❌ Д{current_dogon} проиграл, "
@@ -592,20 +1362,44 @@ def check_predictions():
             )
 
             changed = True
+
             continue
 
-        apply_lose(prediction, current_dogon)
+        # -----------------------------------------------------------
+        # FINAL LOSE
+        # -----------------------------------------------------------
 
-        prediction["status"] = "lose"
-        prediction["closed_at"] = now.isoformat()
-
-        telegram_edit(
-            prediction.get("message_id"),
-            make_result_message(prediction, "lose"),
+        apply_lose(
+            prediction,
+            current_dogon,
         )
 
-        print("", flush=True)
-        print(f"❌ ПРОГНОЗ НЕ ЗАШЁЛ #N{target}", flush=True)
+        prediction["status"] = "lose"
+
+        prediction["closed_at"] = (
+            now.isoformat()
+        )
+
+        telegram_edit(
+            prediction.get(
+                "message_id"
+            ),
+            make_result_message(
+                prediction,
+                "lose",
+            ),
+        )
+
+        print(
+            "",
+            flush=True,
+        )
+
+        print(
+            f"❌ ПРОГНОЗ НЕ ЗАШЁЛ "
+            f"#N{target}",
+            flush=True,
+        )
 
         changed = True
 
@@ -617,62 +1411,144 @@ def check_predictions():
 # ОБРАБОТКА ИГР TELEGRAM
 # =====================================================================
 
-def on_game_message(game_number, text, is_edited):
+def on_game_message(
+    game_number,
+    text,
+    is_edited,
+):
 
     if is_waiting_message(text):
         return
 
-    game = parse_game_message(text)
+    game = parse_game_message(
+        text
+    )
 
     if not game:
         return
 
-    if not game.get("player_cards") or not game.get("dealer_cards"):
+    if (
+        not game.get("player_cards")
+        or not game.get("dealer_cards")
+    ):
         return
 
-    is_new = game_number not in games_cache
-    games_cache[game_number] = game
+    # ---------------------------------------------------------------
+    # ВАЖНО:
+    # Фиксируем игровой день именно в момент
+    # получения игры.
+    # ---------------------------------------------------------------
 
-    pending_games[game_number] = {
+    current_game_day = get_game_day()
+
+    game["game_day"] = (
+        current_game_day
+    )
+
+    is_new = (
+        game_number
+        not in games_cache
+    )
+
+    games_cache[
+        game_number
+    ] = game
+
+    pending_games[
+        game_number
+    ] = {
         "text": text,
         "last_update": time.time(),
+        "first_seen": time.time(),
+        "game_day": current_game_day,
     }
 
     if is_new:
+
         log_game(game)
-        create_prediction(game)
+
+        create_prediction(
+            game
+        )
 
 
 # =====================================================================
-# ОЧИСТКА
+# ОЧИСТКА GAMES CACHE
 # =====================================================================
 
 def cleanup_games_cache():
-    if len(games_cache) <= MAX_GAMES_CACHE:
+
+    if (
+        len(games_cache)
+        <= MAX_GAMES_CACHE
+    ):
         return
+
     items = sorted(
         games_cache.items(),
-        key=lambda kv: kv[1].get("received_at", ""),
+        key=lambda kv:
+            kv[1].get(
+                "received_at",
+                "",
+            ),
     )
-    for number, _ in items[:-MAX_GAMES_CACHE]:
-        del games_cache[number]
 
+    for number, _ in items[
+        :-MAX_GAMES_CACHE
+    ]:
+
+        del games_cache[
+            number
+        ]
+
+
+# =====================================================================
+# ОЧИСТКА FINALIZED
+# =====================================================================
 
 def cleanup_finalized_games():
-    if len(finalized_games) <= MAX_GAMES_CACHE:
+
+    if (
+        len(finalized_games)
+        <= MAX_GAMES_CACHE
+    ):
         return
+
     items = sorted(
         finalized_games.items(),
-        key=lambda kv: kv[1].get("received_at", ""),
+        key=lambda kv:
+            kv[1].get(
+                "received_at",
+                "",
+            ),
     )
-    for number, _ in items[:-MAX_GAMES_CACHE]:
-        del finalized_games[number]
 
+    for number, _ in items[
+        :-MAX_GAMES_CACHE
+    ]:
+
+        del finalized_games[
+            number
+        ]
+
+
+# =====================================================================
+# ОЧИСТКА ПРОГНОЗОВ
+# =====================================================================
 
 def cleanup_predictions():
+
     global predictions
-    if len(predictions) > MAX_PREDICTIONS_STORED:
-        predictions = predictions[-MAX_PREDICTIONS_STORED:]
+
+    if (
+        len(predictions)
+        > MAX_PREDICTIONS_STORED
+    ):
+
+        predictions = predictions[
+            -MAX_PREDICTIONS_STORED:
+        ]
+
         save_predictions()
 
 
@@ -684,61 +1560,205 @@ def main():
 
     global predictions
 
-    print("", flush=True)
-    print("==================================================", flush=True)
-    print("🚀 CYBER 21 — FIRST CARD PREDICTOR v2", flush=True)
-    print("==================================================", flush=True)
-    print("📡 Игры: CHANNEL_STATS", flush=True)
-    print("📤 Прогнозы: CHANNEL_PROGNOZ", flush=True)
-    print("🎯 Алгоритм: первая карта игрока J/Q/K/A", flush=True)
-    print("🎯 Масть: от игры триггер − 3", flush=True)
-    print(f"📌 Цель: +{EXTRA_TARGET_OFFSET} (отправка за {EXTRA_SEND_BEFORE} игр)", flush=True)
-    print(f"⏰ Отправка/проверка через {SEND_AFTER_HOURS} ч", flush=True)
-    print("💸 Ставок на прогноз: 2 (игрок + дилер)", flush=True)
-    print(f"🔄 Догоны: Д0..Д{DOGON_GAMES}", flush=True)
-    print(f"⏰ Таймаут → возврат: {PREDICTION_TIMEOUT_MINUTES} мин", flush=True)
-    print(f"⏳ Финализация игры: {FINALIZE_WAIT_SECONDS} сек", flush=True)
-    print("==================================================", flush=True)
+    print(
+        "",
+        flush=True,
+    )
+
+    print(
+        "==================================================",
+        flush=True,
+    )
+
+    print(
+        "🚀 CYBER 21 — FIRST CARD PREDICTOR v2",
+        flush=True,
+    )
+
+    print(
+        "==================================================",
+        flush=True,
+    )
+
+    print(
+        "📡 Игры: CHANNEL_STATS",
+        flush=True,
+    )
+
+    print(
+        "📤 Прогнозы: CHANNEL_PROGNOZ",
+        flush=True,
+    )
+
+    print(
+        "🎯 Алгоритм: первая карта игрока J/Q/K/A",
+        flush=True,
+    )
+
+    print(
+        "🎯 Масть: от игры триггер − 3",
+        flush=True,
+    )
+
+    print(
+        "📅 Цель: ТА ЖЕ ИГРА СЛЕДУЮЩЕГО ИГРОВОГО ДНЯ",
+        flush=True,
+    )
+
+    print(
+        f"📤 Отправка: за "
+        f"{EXTRA_SEND_BEFORE} игр до цели",
+        flush=True,
+    )
+
+    print(
+        "⏰ Игровой день: 03:00 МСК",
+        flush=True,
+    )
+
+    print(
+        "💸 Ставок на прогноз: 2 "
+        "(игрок + дилер)",
+        flush=True,
+    )
+
+    print(
+        f"🔄 Догоны: "
+        f"Д0..Д{DOGON_GAMES}",
+        flush=True,
+    )
+
+    print(
+        f"⏰ Таймаут: "
+        f"{PREDICTION_TIMEOUT_MINUTES} мин",
+        flush=True,
+    )
+
+    print(
+        f"⏳ Финализация игры: "
+        f"{FINALIZE_WAIT_SECONDS} сек",
+        flush=True,
+    )
+
+    print(
+        "==================================================",
+        flush=True,
+    )
 
     delete_webhook()
+
     load_bank()
+
     load_predictions()
 
     offset = load_offset()
 
-    print(f"📌 Telegram offset: {offset}", flush=True)
-    print(f"📊 Загружено прогнозов: {len(predictions)}", flush=True)
-    print("==================================================", flush=True)
-    print("🟢 БОТ ГОТОВ", flush=True)
-    print("==================================================", flush=True)
+    print(
+        f"📌 Telegram offset: "
+        f"{offset}",
+        flush=True,
+    )
+
+    print(
+        f"📊 Загружено прогнозов: "
+        f"{len(predictions)}",
+        flush=True,
+    )
+
+    print(
+        f"📅 Текущий игровой день: "
+        f"{get_game_day()}",
+        flush=True,
+    )
+
+    print(
+        "==================================================",
+        flush=True,
+    )
+
+    print(
+        "🟢 БОТ ГОТОВ",
+        flush=True,
+    )
+
+    print(
+        "==================================================",
+        flush=True,
+    )
 
     while True:
 
         try:
 
+            # -------------------------------------------------------
+            # НОЧНАЯ ОЧИСТКА
+            # -------------------------------------------------------
+
             if should_cleanup_now():
                 cleanup_nightly()
+
+            # -------------------------------------------------------
+            # ПОЛУЧАЕМ ИГРЫ
+            # -------------------------------------------------------
 
             offset = process_telegram_updates(
                 offset,
                 on_game_message,
             )
 
+            # -------------------------------------------------------
+            # ФИНАЛИЗАЦИЯ
+            # -------------------------------------------------------
+
             finalize_pending_games()
+
+            # -------------------------------------------------------
+            # ОТПРАВКА ЗАПЛАНИРОВАННЫХ
+            # -------------------------------------------------------
+
             send_scheduled_predictions()
+
+            # -------------------------------------------------------
+            # ПРОВЕРКА ПРОГНОЗОВ
+            # -------------------------------------------------------
+
             check_predictions()
+
+            # -------------------------------------------------------
+            # ОЧИСТКА
+            # -------------------------------------------------------
+
             cleanup_games_cache()
+
             cleanup_finalized_games()
+
             cleanup_predictions()
 
-            time.sleep(POLL_INTERVAL)
+            time.sleep(
+                POLL_INTERVAL
+            )
 
         except KeyboardInterrupt:
-            print("\n🛑 Бот остановлен", flush=True)
+
+            print(
+                "\n🛑 Бот остановлен",
+                flush=True,
+            )
+
             break
 
         except Exception as e:
-            print(f"❌ Критическая ошибка: {e}", flush=True)
+
+            print(
+                f"❌ Критическая ошибка: "
+                f"{e}",
+                flush=True,
+            )
+
+            import traceback
+
+            traceback.print_exc()
+
             time.sleep(3)
 
 
@@ -747,6 +1767,7 @@ def main():
 # =====================================================================
 
 if __name__ == "__main__":
+
     import threading
     import time
 
@@ -756,7 +1777,9 @@ if __name__ == "__main__":
     ).start()
 
     from web_server import start_web_server
+
     start_web_server()
 
     while True:
+
         time.sleep(60)
