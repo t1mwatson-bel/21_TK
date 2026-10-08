@@ -30,9 +30,9 @@ body {
     background:
         radial-gradient(
             circle at top,
-            #172033 0%,
-            #090c13 45%,
-            #05070b 100%
+            #101828 0%,
+            #06090f 45%,
+            #03050a 100%
         );
 
     color: #ffffff;
@@ -42,7 +42,7 @@ body {
 
 
 /* =========================================================
-   HEADER
+   HEADER (с неоном)
 ========================================================= */
 
 .header {
@@ -63,8 +63,9 @@ body {
     color: #ffffff;
 
     text-shadow:
-        0 0 10px rgba(255,255,255,.25),
-        0 0 30px rgba(80,160,255,.25);
+        0 0 10px rgba(0, 255, 200, .6),
+        0 0 20px rgba(0, 200, 255, .5),
+        0 0 40px rgba(120, 100, 255, .5);
 }
 
 .subtitle {
@@ -122,19 +123,20 @@ body {
     background:
         linear-gradient(
             145deg,
-            rgba(255,255,255,.07),
-            rgba(255,255,255,.025)
+            rgba(20, 30, 50, .65),
+            rgba(10, 15, 25, .45)
         );
 
     border:
-        1px solid rgba(255,255,255,.08);
+        1px solid rgba(0, 200, 255, .15);
 
     border-radius: 18px;
 
     padding: 22px;
 
     box-shadow:
-        0 10px 30px rgba(0,0,0,.25);
+        0 0 15px rgba(0, 200, 255, .08),
+        0 10px 30px rgba(0, 0, 0, .45);
 
     backdrop-filter: blur(10px);
 }
@@ -157,22 +159,130 @@ body {
     font-size: 32px;
 
     font-weight: 800;
+
+    text-shadow:
+        0 0 8px currentColor;
 }
 
 .green {
     color: #4cff9b;
+    text-shadow: 0 0 12px rgba(76, 255, 155, .7);
 }
 
 .red {
     color: #ff5d70;
+    text-shadow: 0 0 12px rgba(255, 93, 112, .7);
 }
 
 .blue {
     color: #65aaff;
+    text-shadow: 0 0 12px rgba(101, 170, 255, .7);
 }
 
 .orange {
     color: #ffbd66;
+    text-shadow: 0 0 12px rgba(255, 189, 102, .7);
+}
+
+.neon {
+    color: #00ffe0;
+    text-shadow:
+        0 0 8px rgba(0, 255, 224, .9),
+        0 0 20px rgba(0, 255, 224, .6);
+}
+
+
+/* =========================================================
+   BANK GRID (специально для банка)
+========================================================= */
+
+.bank-grid {
+
+    display: grid;
+
+    grid-template-columns:
+        repeat(
+            auto-fit,
+            minmax(200px, 1fr)
+        );
+
+    gap: 15px;
+
+    margin-bottom: 25px;
+}
+
+.bank-card {
+
+    background:
+        linear-gradient(
+            145deg,
+            rgba(0, 255, 200, .08),
+            rgba(0, 100, 255, .04)
+        );
+
+    border:
+        1px solid rgba(0, 255, 200, .25);
+
+    border-radius: 18px;
+
+    padding: 22px;
+
+    box-shadow:
+        0 0 20px rgba(0, 255, 200, .12),
+        0 10px 30px rgba(0, 0, 0, .4);
+
+    backdrop-filter: blur(10px);
+}
+
+.bank-title {
+
+    color: #7affd9;
+
+    font-size: 13px;
+
+    margin-bottom: 10px;
+
+    text-transform: uppercase;
+
+    letter-spacing: 1.5px;
+}
+
+.bank-value {
+
+    font-size: 34px;
+
+    font-weight: 900;
+
+    color: #ffffff;
+
+    text-shadow:
+        0 0 10px rgba(0, 255, 200, .8),
+        0 0 25px rgba(0, 255, 200, .4);
+}
+
+.bank-value.profit-positive {
+    color: #4cff9b;
+    text-shadow:
+        0 0 10px rgba(76, 255, 155, .9),
+        0 0 25px rgba(76, 255, 155, .5);
+}
+
+.bank-value.profit-negative {
+    color: #ff5d70;
+    text-shadow:
+        0 0 10px rgba(255, 93, 112, .9),
+        0 0 25px rgba(255, 93, 112, .5);
+}
+
+.bank-sub {
+
+    margin-top: 6px;
+
+    color: #7e8ba0;
+
+    font-size: 12px;
+
+    letter-spacing: .5px;
 }
 
 
@@ -185,16 +295,19 @@ body {
     margin-top: 25px;
 
     background:
-        rgba(255,255,255,.035);
+        rgba(255, 255, 255, .03);
 
     border:
-        1px solid rgba(255,255,255,.07);
+        1px solid rgba(0, 200, 255, .12);
 
     border-radius: 20px;
 
     padding: 22px;
 
     overflow: hidden;
+
+    box-shadow:
+        0 0 20px rgba(0, 200, 255, .06);
 }
 
 .section-title {
@@ -204,6 +317,9 @@ body {
     font-weight: 800;
 
     margin-bottom: 18px;
+
+    text-shadow:
+        0 0 8px rgba(0, 255, 200, .5);
 }
 
 
@@ -241,7 +357,7 @@ th {
 
     border-bottom:
         1px solid
-        rgba(255,255,255,.08);
+        rgba(0, 200, 255, .15);
 }
 
 td {
@@ -250,7 +366,7 @@ td {
 
     border-bottom:
         1px solid
-        rgba(255,255,255,.05);
+        rgba(255, 255, 255, .05);
 
     font-size: 14px;
 }
@@ -258,6 +374,10 @@ td {
 tr:last-child td {
 
     border-bottom: none;
+}
+
+tr:hover td {
+    background: rgba(0, 200, 255, .04);
 }
 
 .progress {
@@ -285,6 +405,8 @@ tr:last-child td {
         );
 
     border-radius: 20px;
+
+    box-shadow: 0 0 8px rgba(76, 255, 155, .6);
 }
 
 
@@ -308,11 +430,13 @@ tr:last-child td {
 .latest-item {
 
     background:
-        rgba(0,0,0,.18);
+        rgba(0, 0, 0, .25);
 
     padding: 15px;
 
     border-radius: 13px;
+
+    border: 1px solid rgba(0, 200, 255, .08);
 }
 
 .latest-label {
@@ -329,6 +453,8 @@ tr:last-child td {
     font-size: 19px;
 
     font-weight: 700;
+
+    text-shadow: 0 0 6px rgba(255, 255, 255, .3);
 }
 
 
@@ -386,6 +512,8 @@ tr:last-child td {
             #4cff9b,
             #16a96a
         );
+
+    box-shadow: 0 0 8px rgba(76, 255, 155, .6);
 }
 
 .bar.miss {
@@ -396,6 +524,8 @@ tr:last-child td {
             #ff6478,
             #b92742
         );
+
+    box-shadow: 0 0 8px rgba(255, 93, 112, .6);
 }
 
 
@@ -419,13 +549,15 @@ tr:last-child td {
 .rolling-card {
 
     background:
-        rgba(0,0,0,.18);
+        rgba(0, 0, 0, .25);
 
     border-radius: 15px;
 
     padding: 20px;
 
     text-align: center;
+
+    border: 1px solid rgba(0, 200, 255, .08);
 }
 
 .rolling-name {
@@ -442,6 +574,9 @@ tr:last-child td {
     font-size: 30px;
 
     font-weight: 900;
+
+    text-shadow:
+        0 0 10px rgba(0, 255, 200, .5);
 }
 
 
@@ -481,6 +616,26 @@ tr:last-child td {
 
 
 /* =========================================================
+   BANK HISTORY
+========================================================= */
+
+.history-type-win {
+    color: #4cff9b;
+    font-weight: 700;
+}
+
+.history-type-lose {
+    color: #ff5d70;
+    font-weight: 700;
+}
+
+.history-type-return {
+    color: #65aaff;
+    font-weight: 700;
+}
+
+
+/* =========================================================
    MOBILE
 ========================================================= */
 
@@ -503,6 +658,10 @@ tr:last-child td {
         font-size: 27px;
     }
 
+    .bank-value {
+        font-size: 26px;
+    }
+
 }
 
 </style>
@@ -523,6 +682,109 @@ tr:last-child td {
 
 
 <main class="container">
+
+
+    <!-- =====================================================
+         БАНК
+    ====================================================== -->
+
+    <section class="section">
+
+        <div class="section-title">
+            💰 Банк
+        </div>
+
+        <div class="bank-grid">
+
+            <div class="bank-card">
+
+                <div class="bank-title">
+                    Баланс
+                </div>
+
+                <div
+                    id="bank-balance"
+                    class="bank-value"
+                >
+                    —
+                </div>
+
+                <div
+                    id="bank-start"
+                    class="bank-sub"
+                >
+                    Старт: —
+                </div>
+
+            </div>
+
+
+            <div class="bank-card">
+
+                <div class="bank-title">
+                    Профит
+                </div>
+
+                <div
+                    id="bank-profit"
+                    class="bank-value"
+                >
+                    —
+                </div>
+
+                <div
+                    id="bank-profit-percent"
+                    class="bank-sub"
+                >
+                    —
+                </div>
+
+            </div>
+
+
+            <div class="bank-card">
+
+                <div class="bank-title">
+                    ROI
+                </div>
+
+                <div
+                    id="bank-roi"
+                    class="bank-value"
+                >
+                    —
+                </div>
+
+                <div class="bank-sub">
+                    От стартового банка
+                </div>
+
+            </div>
+
+
+            <div class="bank-card">
+
+                <div class="bank-title">
+                    Текущая ставка
+                </div>
+
+                <div
+                    id="bank-current-bet"
+                    class="bank-value"
+                >
+                    —
+                </div>
+
+                <div class="bank-sub">
+                    База догона
+                </div>
+
+            </div>
+
+        </div>
+
+    </section>
+
 
 
     <!-- =====================================================
@@ -657,29 +919,12 @@ tr:last-child td {
 
                     <tr>
 
-                        <th>
-                            Догон
-                        </th>
-
-                        <th>
-                            Прогнозов
-                        </th>
-
-                        <th>
-                            Зашло
-                        </th>
-
-                        <th>
-                            Не зашло
-                        </th>
-
-                        <th>
-                            Проходимость
-                        </th>
-
-                        <th>
-                            %
-                        </th>
+                        <th>Догон</th>
+                        <th>Прогнозов</th>
+                        <th>Зашло</th>
+                        <th>Не зашло</th>
+                        <th>Проходимость</th>
+                        <th>%</th>
 
                     </tr>
 
@@ -714,29 +959,12 @@ tr:last-child td {
 
                     <tr>
 
-                        <th>
-                            Карта
-                        </th>
-
-                        <th>
-                            Прогнозов
-                        </th>
-
-                        <th>
-                            Зашло
-                        </th>
-
-                        <th>
-                            Не зашло
-                        </th>
-
-                        <th>
-                            Проходимость
-                        </th>
-
-                        <th>
-                            %
-                        </th>
+                        <th>Карта</th>
+                        <th>Прогнозов</th>
+                        <th>Зашло</th>
+                        <th>Не зашло</th>
+                        <th>Проходимость</th>
+                        <th>%</th>
 
                     </tr>
 
@@ -770,6 +998,48 @@ tr:last-child td {
         </div>
 
     </section>
+
+
+
+    <!-- =====================================================
+         BANK HISTORY
+    ====================================================== -->
+
+    <section class="section">
+
+        <div class="section-title">
+            📜 История банка
+        </div>
+
+        <div class="table-wrapper">
+
+            <table>
+
+                <thead>
+
+                    <tr>
+
+                        <th>Время</th>
+                        <th>Тип</th>
+                        <th>Карта</th>
+                        <th>Догон</th>
+                        <th>Ставка</th>
+                        <th>Выплата</th>
+                        <th>Баланс</th>
+
+                    </tr>
+
+                </thead>
+
+                <tbody id="bank-history-table">
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </section>
+
 
 
     <div
@@ -816,8 +1086,44 @@ function escapeHtml(value) {
 }
 
 
+function formatMoney(value) {
+
+    const num = Number(value || 0);
+
+    return num.toLocaleString("ru-RU", {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 2,
+    }) + " ₽";
+
+}
+
+
+function formatTime(iso) {
+
+    if (!iso) return "—";
+
+    try {
+
+        const date = new Date(iso);
+
+        return date.toLocaleString("ru-RU", {
+            day: "2-digit",
+            month: "2-digit",
+            hour: "2-digit",
+            minute: "2-digit",
+        });
+
+    } catch (e) {
+
+        return "—";
+
+    }
+
+}
+
+
 // ============================================================
-// LOAD
+// LOAD STATS
 // ============================================================
 
 async function loadStats() {
@@ -861,7 +1167,79 @@ async function loadStats() {
 
 
 // ============================================================
-// RENDER
+// LOAD BANK
+// ============================================================
+
+async function loadBank() {
+
+    try {
+
+        const response =
+            await fetch(
+                "/api/bank?_=" +
+                Date.now()
+            );
+
+        if (!response.ok) {
+
+            throw new Error(
+                "HTTP " + response.status
+            );
+
+        }
+
+        const data =
+            await response.json();
+
+        renderBank(data);
+
+    }
+
+    catch (error) {
+
+        console.error("Bank error:", error);
+
+    }
+
+}
+
+
+async function loadBankHistory() {
+
+    try {
+
+        const response =
+            await fetch(
+                "/api/bank/history?_=" +
+                Date.now()
+            );
+
+        if (!response.ok) {
+
+            throw new Error(
+                "HTTP " + response.status
+            );
+
+        }
+
+        const data =
+            await response.json();
+
+        renderBankHistory(data);
+
+    }
+
+    catch (error) {
+
+        console.error("Bank history error:", error);
+
+    }
+
+}
+
+
+// ============================================================
+// RENDER STATS
 // ============================================================
 
 function render(data) {
@@ -1069,17 +1447,11 @@ function render(data) {
                         </strong>
                     </td>
 
-                    <td>
-                        ${item.total}
-                    </td>
+                    <td>${item.total}</td>
 
-                    <td class="green">
-                        ${item.hits}
-                    </td>
+                    <td class="green">${item.hits}</td>
 
-                    <td class="red">
-                        ${item.misses}
-                    </td>
+                    <td class="red">${item.misses}</td>
 
                     <td>
 
@@ -1135,17 +1507,11 @@ function render(data) {
                         </strong>
                     </td>
 
-                    <td>
-                        ${item.total}
-                    </td>
+                    <td>${item.total}</td>
 
-                    <td class="green">
-                        ${item.hits}
-                    </td>
+                    <td class="green">${item.hits}</td>
 
-                    <td class="red">
-                        ${item.misses}
-                    </td>
+                    <td class="red">${item.misses}</td>
 
                     <td>
 
@@ -1241,20 +1607,173 @@ function render(data) {
 
 
 // ============================================================
+// RENDER BANK
+// ============================================================
+
+function renderBank(data) {
+
+    if (!data) return;
+
+    const balance = Number(data.balance || 0);
+    const startBalance = Number(data.start_balance || 0);
+    const profit = Number(data.profit || 0);
+    const roi = Number(data.roi || 0);
+    const currentBet = Number(data.current_bet || 0);
+
+    // --- Баланс ---
+    document.getElementById(
+        "bank-balance"
+    ).textContent =
+        formatMoney(balance);
+
+    document.getElementById(
+        "bank-start"
+    ).textContent =
+        "Старт: " + formatMoney(startBalance);
+
+    // --- Профит ---
+    const profitEl =
+        document.getElementById(
+            "bank-profit"
+        );
+
+    profitEl.textContent =
+        (profit >= 0 ? "+" : "") +
+        formatMoney(profit);
+
+    profitEl.classList.remove(
+        "profit-positive",
+        "profit-negative",
+    );
+
+    if (profit > 0) {
+        profitEl.classList.add("profit-positive");
+    } else if (profit < 0) {
+        profitEl.classList.add("profit-negative");
+    }
+
+    document.getElementById(
+        "bank-profit-percent"
+    ).textContent =
+        (profit >= 0 ? "+" : "") +
+        roi.toFixed(2) + "%";
+
+    // --- ROI ---
+    document.getElementById(
+        "bank-roi"
+    ).textContent =
+        roi.toFixed(2) + "%";
+
+    // --- Текущая ставка ---
+    document.getElementById(
+        "bank-current-bet"
+    ).textContent =
+        formatMoney(currentBet);
+
+}
+
+
+// ============================================================
+// RENDER BANK HISTORY
+// ============================================================
+
+function renderBankHistory(data) {
+
+    const table =
+        document.getElementById(
+            "bank-history-table"
+        );
+
+    if (!table) return;
+
+    table.innerHTML = "";
+
+    if (!Array.isArray(data) || data.length === 0) {
+
+        table.innerHTML = `
+            <tr>
+                <td colspan="7" style="text-align:center; color:#7e8ba0;">
+                    Нет записей
+                </td>
+            </tr>
+        `;
+
+        return;
+
+    }
+
+    const reversed = [...data].reverse();
+
+    reversed.forEach(item => {
+
+        const type = item.type || "—";
+
+        let typeText = type;
+        let typeClass = "";
+
+        if (type === "win") {
+            typeText = "✅ WIN";
+            typeClass = "history-type-win";
+        } else if (type === "lose") {
+            typeText = "❌ LOSE";
+            typeClass = "history-type-lose";
+        } else if (type === "return") {
+            typeText = "♻️ RETURN";
+            typeClass = "history-type-return";
+        }
+
+        const time = formatTime(item.at);
+        const card = item.predicted_card || "—";
+        const dogon = item.dogon !== undefined
+            ? "D" + item.dogon
+            : "—";
+        const bet = item.bet !== undefined
+            ? formatMoney(item.bet)
+            : "—";
+        const payout = item.payout !== undefined
+            ? formatMoney(item.payout)
+            : "—";
+        const balance = item.balance_after !== undefined
+            ? formatMoney(item.balance_after)
+            : "—";
+
+        table.innerHTML += `
+
+            <tr>
+
+                <td>${time}</td>
+                <td class="${typeClass}">${typeText}</td>
+                <td><strong>${escapeHtml(card)}</strong></td>
+                <td>${dogon}</td>
+                <td>${bet}</td>
+                <td>${payout}</td>
+                <td><strong>${balance}</strong></td>
+
+            </tr>
+
+        `;
+
+    });
+
+}
+
+
+// ============================================================
 // FIRST LOAD
 // ============================================================
 
 loadStats();
+loadBank();
+loadBankHistory();
 
 
 // ============================================================
 // AUTO REFRESH
 // ============================================================
 
-setInterval(
-    loadStats,
-    5000
-);
+setInterval(loadStats, 5000);
+setInterval(loadBank, 5000);
+setInterval(loadBankHistory, 15000);
 
 </script>
 
