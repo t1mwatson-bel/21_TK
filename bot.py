@@ -53,10 +53,10 @@ from bank import (
 
 
 # =====================================================================
-# КОНСТАНТЫ ДОП. ПРОГНОЗА
+# КОНСТАНТЫ
 # =====================================================================
 
-EXTRA_TARGET_OFFSET = 40       # цель = триггер + 40
+EXTRA_TARGET_OFFSET = 1442     # цель = триггер + 1442 (завтра, та же игра)
 EXTRA_SEND_BEFORE = 7          # отправка за 7 игр до цели
 
 
@@ -187,7 +187,7 @@ def make_prediction_message(prediction):
     target = prediction["target_number"]
     card = prediction["predicted_card"]
 
-    return f"📌 Доп: <b>#N{target}</b>: {card}"
+    return f"🎯 Игра: <b>#N{target}</b>: {card}"
 
 
 def make_result_message(prediction, result, found_card=None):
@@ -203,15 +203,15 @@ def make_result_message(prediction, result, found_card=None):
             where_text = " (игрок)"
         else:
             where_text = ""
-        return f"📌 Доп: <b>#N{target}</b>: {card} ✅{where_text}"
+        return f"🎯 Игра: <b>#N{target}</b>: {card} ✅{where_text}"
 
     elif result == "lose":
-        return f"📌 Доп: <b>#N{target}</b>: {card} ❌"
+        return f"🎯 Игра: <b>#N{target}</b>: {card} ❌"
 
     elif result == "return":
-        return f"📌 Доп: <b>#N{target}</b>: {card} ♻️"
+        return f"🎯 Игра: <b>#N{target}</b>: {card} ♻️"
 
-    return f"📌 Доп: <b>#N{target}</b>: {card} ⚠️"
+    return f"🎯 Игра: <b>#N{target}</b>: {card} ⚠️"
 
 
 # =====================================================================
@@ -237,15 +237,10 @@ def is_waiting_message(text):
 
 
 # =====================================================================
-# СОЗДАНИЕ ПРОГНОЗА (только доп.)
+# СОЗДАНИЕ ПРОГНОЗА
 # =====================================================================
 
 def create_prediction(trigger_game):
-    """
-    Создаёт ДОП. прогноз от триггера:
-    - Цель: триггер + 40
-    - Отправка: за 7 игр до цели
-    """
 
     trigger = find_trigger_v2(trigger_game)
 
@@ -329,7 +324,7 @@ def create_prediction(trigger_game):
     save_predictions()
 
     print("", flush=True)
-    print("📌 ДОП. ПРОГНОЗ СОЗДАН (ожидает отправки)", flush=True)
+    print("📌 ПРОГНОЗ СОЗДАН (ожидает отправки)", flush=True)
     print(f"📌 Триггер: #N{trigger_number}", flush=True)
     print(f"🃏 Первая карта: {trigger['trigger_card']}", flush=True)
     print(f"🎨 Масть из #N{suit_game_number}: {predicted_suit}", flush=True)
@@ -396,7 +391,7 @@ def send_scheduled_predictions():
         if send_game in finalized_games or send_game in games_cache:
 
             print(
-                f"📤 Отправка доп. прогноза "
+                f"📤 Отправка прогноза "
                 f"#N{prediction['target_number']} "
                 f"(игра #N{send_game} пришла)",
                 flush=True,
@@ -661,7 +656,7 @@ def main():
 
     print("", flush=True)
     print("==================================================", flush=True)
-    print("🚀 CYBER 21 — FIRST CARD PREDICTOR v2 EXTRA", flush=True)
+    print("🚀 CYBER 21 — FIRST CARD PREDICTOR v2", flush=True)
     print("==================================================", flush=True)
     print("📡 Игры: CHANNEL_STATS", flush=True)
     print("📤 Прогнозы: CHANNEL_PROGNOZ", flush=True)
