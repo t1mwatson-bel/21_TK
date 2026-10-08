@@ -342,7 +342,8 @@ def find_trigger(game):
 
         card_count = len(player)
 
-        target_offset = card_count * 10
+        # Сдвиг: количество карт × 10 + 10 (запас на задержку)
+        target_offset = card_count * 10 + 10
 
         return {
             "trigger_card": card_to_text(previous),
