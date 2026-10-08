@@ -234,7 +234,6 @@ def make_result_message(prediction, result, found_info=None):
 
     if result == "win":
 
-        # Собираем список зашедших карт с указанием, где нашли
         won_texts = []
 
         if found_info:
@@ -371,6 +370,8 @@ def create_prediction(game):
         "predicted_card_extra": predicted_card_extra,
         "predicted_cards": predicted_cards,
 
+        "cf": cf,
+
         "player_card_count": player_card_count,
         "target_offset": target_offset,
         "target_number": target_number,
@@ -378,15 +379,13 @@ def create_prediction(game):
         "base_bet": base_bet,
         "bet": base_bet,
 
-        "cf": cf,
-
         "status": "preparing",
         "warning_sent": False,
         "warning_message_id": None,
         "ready_to_send": False,
 
-        "dogon": None,
-        "bets_placed": [],
+        "dogon": 0,
+        "bets_placed": [0],
 
         "created_at": datetime.now(MOSCOW_TZ).isoformat(),
         "sent_at": None,
@@ -445,7 +444,6 @@ def send_prediction(prediction):
     prediction["message_id"] = message_id
     prediction["sent_at"] = datetime.now(MOSCOW_TZ).isoformat()
 
-    # Удаляем предупреждение
     warning_id = prediction.get("warning_message_id")
 
     if warning_id:
@@ -571,93 +569,74 @@ def check_predictions():
                 pass
 
         # -----------------------------------------------------------
-        # Д0..Д3
+        # ТЕКУЩИЙ ДОГОН
         # -----------------------------------------------------------
 
-        checked_games = []
-        waiting = False
-        won = False
-
-        for dogon in range(0, DOGON_GAMES + 1):
-
-            game_number = add_game_offset(target, dogon)
-            game = games_cache.get(game_number)
-
-            if not game:
-                waiting = True
-                break
-
-            checked_games.append(game_number)
-
-            # Ищем обе карты
-            found_list = find_cards_in_game(
-                game,
-                prediction.get("predicted_cards", []),
-            )
-
-            # Отбираем только зашедшие
-            found_cards = [
-                item for item in found_list
-                if item.get("where") is not None
-            ]
-
-            if found_cards:
-
-                # Победа!
-                prediction["status"] = "win"
-                prediction["result_game"] = game_number
-                prediction["found_cards"] = found_cards
-                prediction["dogon"] = dogon
-                prediction["closed_at"] = now.isoformat()
-
-                telegram_edit(
-                    prediction.get("message_id"),
-                    make_result_message(prediction, "win", found_cards),
-                )
-
-                apply_win(prediction, dogon, found_cards)
-
-                print("", flush=True)
-                print(f"✅ ПРОГНОЗ ЗАШЁЛ #N{target}", flush=True)
-                print(
-                    f"🎯 Карты: {' / '.join(prediction.get('predicted_cards', []))}",
-                    flush=True,
-                )
-                for item in found_cards:
-                    print(
-                        f"🃏 Найдена: {item['card']} "
-                        f"({item['where']})",
-                        flush=True,
-                    )
-                print(f"🔄 Догон: Д{dogon}", flush=True)
-                print(f"🎰 Игра: #N{game_number}", flush=True)
-
-                changed = True
-                won = True
-                break
-
-        if won:
-            continue
-
-        if waiting:
-            continue
-
-        # -----------------------------------------------------------
-        # LOSE на текущем догоне
-        # -----------------------------------------------------------
-
-        prediction["dogon"] = DOGON_GAMES  # условно, если все проиграли
-
-        # Если это не последний догон — переходим на следующий
-        # Если последний — весь цикл проигран
-
-        # Определяем текущий догон
         current_dogon = prediction.get("dogon")
 
         if current_dogon is None:
             current_dogon = 0
 
-        # Все игры для текущего догона проверены — проиграл
+        # -----------------------------------------------------------
+        # ПРОВЕРКА ИГРЫ НА ТЕКУЩЕМ ДОГОНЕ
+        # -----------------------------------------------------------
+
+        game_number = add_game_offset(target, current_dogon)
+        game = games_cache.get(game_number)
+
+        if not game:
+            # Игра ещё не пришла
+            continue
+
+        # Ищем обе карты
+        found_list = find_cards_in_game(
+            game,
+            prediction.get("predicted_cards", []),
+        )
+
+        # Отбираем только зашедшие
+        found_cards = [
+            item for item in found_list
+            if item.get("where") is not None
+        ]
+
+        if found_cards:
+
+            # Победа!
+            prediction["status"] = "win"
+            prediction["result_game"] = game_number
+            prediction["found_cards"] = found_cards
+            prediction["closed_at"] = now.isoformat()
+
+            telegram_edit(
+                prediction.get("message_id"),
+                make_result_message(prediction, "win", found_cards),
+            )
+
+            apply_win(prediction, current_dogon, found_cards)
+
+            print("", flush=True)
+            print(f"✅ ПРОГНОЗ ЗАШЁЛ #N{target}", flush=True)
+            print(
+                f"🎯 Карты: {' / '.join(prediction.get('predicted_cards', []))}",
+                flush=True,
+            )
+            for item in found_cards:
+                print(
+                    f"🃏 Найдена: {item['card']} "
+                    f"({item['where']})",
+                    flush=True,
+                )
+            print(f"🔄 Догон: Д{current_dogon}", flush=True)
+            print(f"🎰 Игра: #N{game_number}", flush=True)
+
+            changed = True
+            continue
+
+        # -----------------------------------------------------------
+        # ПРОИГРЫШ НА ТЕКУЩЕМ ДОГОНЕ
+        # -----------------------------------------------------------
+
         if current_dogon < DOGON_GAMES:
 
             # Переход на следующий догон
@@ -668,9 +647,12 @@ def check_predictions():
             prediction["dogon"] = next_dogon
 
             print(
-                f"❌ Д{current_dogon} проиграл, переходим на Д{next_dogon}",
+                f"❌ Д{current_dogon} проиграл, "
+                f"переходим на Д{next_dogon}",
                 flush=True,
             )
+
+            changed = True
 
         else:
 
@@ -691,12 +673,8 @@ def check_predictions():
                 f"🎯 Карты: {' / '.join(prediction.get('predicted_cards', []))}",
                 flush=True,
             )
-            print(
-                f"🔎 Проверено игр: {checked_games}",
-                flush=True,
-            )
 
-        changed = True
+            changed = True
 
     if changed:
         save_predictions()
