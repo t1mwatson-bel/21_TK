@@ -356,8 +356,8 @@ def create_prediction(game):
     predictions.append(prediction)
     save_predictions()
 
-    warning_game = add_game_offset(target_number, -7)
-    send_game = add_game_offset(target_number, -3)
+    warning_game = add_game_offset(target_number, -12)
+    send_game = add_game_offset(target_number, -8)
 
     print("", flush=True)
     print("🔮 ПРОГНОЗ ПОДГОТОВЛЕН (ждём подход к цели)", flush=True)
@@ -447,7 +447,7 @@ def check_predictions():
 
             if not prediction.get("warning_sent"):
 
-                warning_game = add_game_offset(target, -7)
+                warning_game = add_game_offset(target, -12)
 
                 if warning_game in games_cache:
 
@@ -457,7 +457,7 @@ def check_predictions():
 
             if not prediction.get("ready_to_send"):
 
-                send_game = add_game_offset(target, -3)
+                send_game = add_game_offset(target, -8)
 
                 if send_game in games_cache:
 
