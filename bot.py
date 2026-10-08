@@ -564,7 +564,7 @@ def create_prediction(trigger_game):
     if not target_day:
         return None
 
-    target_number = trigger_number
+    target_number = add_game_offset(trigger_number, 2)
 
     # ---------------------------------------------------------------
     # ИГРА, ПРИ КОТОРОЙ ОТПРАВЛЯЕМ ПРОГНОЗ
