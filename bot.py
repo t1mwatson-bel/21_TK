@@ -1463,9 +1463,7 @@ def on_game_message(
         "game_day": current_game_day,
     }
 
-    if is_new:
-
-        log_game(game)
+    log_game(game)
 
     # ВСЕГДА пробуем создать прогноз
     create_prediction(game)
