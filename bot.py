@@ -1467,9 +1467,8 @@ def on_game_message(
 
         log_game(game)
 
-        create_prediction(
-            game
-        )
+    # ВСЕГДА пробуем создать прогноз
+    create_prediction(game)
 
 
 # =====================================================================
