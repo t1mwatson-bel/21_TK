@@ -23,6 +23,13 @@ CARD_RE = re.compile(
 
 
 # =====================================================================
+# РАНГИ (только цифры 2-10 для триггера)
+# =====================================================================
+
+DIGIT_RANKS = {"2", "3", "4", "5", "6", "7", "8", "9", "10"}
+
+
+# =====================================================================
 # НОРМАЛИЗАЦИЯ
 # =====================================================================
 
@@ -137,7 +144,7 @@ def parse_cards(text):
 def parse_game_message(text):
     """
     Разбирает сообщение вида:
-    #N1247. 23(10♠K♥9♥) - ✅18(A♣7♥) #T41 (ID: 759233499)
+    #N677 ✅5 (6♣️9♦️10♠️) - 1 (A♣️Q♦️Q♥️) #П1 #T6 (ID: ...)
     """
 
     if not text:
@@ -238,106 +245,164 @@ def add_game_offset(number, offset):
 
 
 # =====================================================================
-# ПОЛУЧЕНИЕ ПЕРВОЙ КАРТЫ ИГРОКА
+# ПОЛУЧЕНИЕ КАРТ
 # =====================================================================
 
 def get_first_player_card(game):
     player = game.get("player_cards", [])
-
     if not player:
         return None
-
     return player[0]
+
+
+def get_third_player_card(game):
+    player = game.get("player_cards", [])
+    if len(player) < 3:
+        return None
+    return player[2]
 
 
 def get_first_player_rank(game):
     card = get_first_player_card(game)
-
     if not card:
         return None
-
     return normalize_rank(card.get("rank"))
 
 
-def get_first_player_suit(game):
-    card = get_first_player_card(game)
-
+def get_third_player_rank(game):
+    card = get_third_player_card(game)
     if not card:
         return None
-
-    return normalize_suit(card.get("suit"))
+    return normalize_rank(card.get("rank"))
 
 
 # =====================================================================
-# НОВЫЙ ТРИГГЕР (v2)
+# ТРИГГЕР БАККАРЫ
 # =====================================================================
 
 def find_trigger_v2(game):
     """
-    Триггер срабатывает ТОЛЬКО если:
-        1. Игра ЗАВЕРШЕНА (есть ✅).
+    Триггер в БАККАРЕ.
+
+    Условия:
+        1. Игра ЗАВЕРШЕНА (✅).
         2. У игрока РОВНО 3 карты.
-        3. Первая карта игрока = J/Q/K/A.
+        3. 1-я карта — цифра 2-10.
+        4. 3-я карта — цифра 2-10.
+        5. 1-я карта МЕНЬШЕ 3-й (по значению).
+
+    Прогноз: ранг 3-й карты.
     """
 
-    # 1. Игра завершена (✅)
+    # 1. Игра завершена
     if not game.get("is_finished"):
         return None
 
-    # 2. Ровно 3 карты у игрока
+    # 2. Ровно 3 карты
     player = game.get("player_cards", [])
 
     if len(player) != 3:
         return None
 
-    # 3. Первая карта = J/Q/K/A
+    # 3. Ранги 1-й и 3-й
     first_rank = get_first_player_rank(game)
+    third_rank = get_third_player_rank(game)
 
-    if not first_rank:
+    if first_rank not in DIGIT_RANKS:
         return None
 
-    if first_rank not in {"J", "Q", "K", "A"}:
+    if third_rank not in DIGIT_RANKS:
+        return None
+
+    # 4. 1-я МЕНЬШЕ 3-й
+    if int(first_rank) >= int(third_rank):
         return None
 
     first_card = get_first_player_card(game)
+    third_card = get_third_player_card(game)
 
     return {
         "trigger_card": card_to_text(first_card),
-        "rank": first_rank,
-        "target_offset": 2,
+        "third_card": card_to_text(third_card),
+        "predicted_rank": third_rank,
+        "target_offset": 3,
     }
 
 
 # =====================================================================
-# ПОСТРОЕНИЕ ПРОГНОЗА (v2)
+# ПОСТРОЕНИЕ ПРОГНОЗА
 # =====================================================================
 
-def build_prediction_v2(trigger_game, suit_game):
-    if not trigger_game or not suit_game:
+def build_prediction_v2(trigger_game, suit_game=None):
+    """
+    Прогноз = ранг 3-й карты игрока (из триггерной игры).
+    suit_game — не используется (оставлено для совместимости).
+    """
+
+    if not trigger_game:
         return None
 
-    rank = get_first_player_rank(trigger_game)
+    third_rank = get_third_player_rank(trigger_game)
 
-    if rank not in {"J", "Q", "K", "A"}:
+    if third_rank not in DIGIT_RANKS:
         return None
-
-    suit = get_first_player_suit(suit_game)
-
-    if not suit:
-        return None
-
-    predicted_card = f"{rank}{suit}"
 
     return {
-        "predicted_card": predicted_card,
-        "predicted_rank": rank,
-        "predicted_suit": suit,
-        "target_offset": 2,
+        "predicted_rank": third_rank,
+        "target_offset": 3,
     }
 
 
 # =====================================================================
-# ПОИСК КАРТЫ У ИГРОКА И ДИЛЕРА
+# ПОИСК РАНГА У ИГРОКА И БАНКИРА
+# =====================================================================
+
+def find_rank_in_game(game, target_rank):
+    """
+    Ищет карту с нужным РАНГОМ (любая масть)
+    у игрока или банкира.
+
+    Возвращает:
+        {"card": "10♠️", "where": "player"} или
+        {"card": "10♥️", "where": "dealer"} или
+        None
+    """
+
+    if not target_rank:
+        return None
+
+    target_rank = normalize_rank(target_rank)
+
+    if not target_rank:
+        return None
+
+    # Ищем у игрока
+    for card in game.get("player_cards", []):
+
+        rank = normalize_rank(card.get("rank"))
+
+        if rank == target_rank:
+            return {
+                "card": card_to_text(card),
+                "where": "player",
+            }
+
+    # Ищем у банкира
+    for card in game.get("dealer_cards", []):
+
+        rank = normalize_rank(card.get("rank"))
+
+        if rank == target_rank:
+            return {
+                "card": card_to_text(card),
+                "where": "dealer",
+            }
+
+    return None
+
+
+# =====================================================================
+# ПОИСК КАРТЫ (старая функция, оставлена для совместимости)
 # =====================================================================
 
 def find_card_in_game(game, target_card):
