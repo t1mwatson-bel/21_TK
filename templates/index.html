@@ -10,7 +10,7 @@
     content="width=device-width, initial-scale=1.0"
 >
 
-<title>OLD — Статистика точных карт</title>
+<title>BACCARAT — Статистика рангов</title>
 
 <style>
 
@@ -193,7 +193,7 @@ body {
 
 
 /* =========================================================
-   BANK GRID (специально для банка)
+   BANK GRID
 ========================================================= */
 
 .bank-grid {
@@ -675,7 +675,7 @@ tr:hover td {
 <header class="header">
 
     <div class="logo">
-        OLD — Статистика точных карт
+        BACCARAT — Статистика рангов
     </div>
 
 </header>
@@ -702,19 +702,9 @@ tr:hover td {
                     Баланс
                 </div>
 
-                <div
-                    id="bank-balance"
-                    class="bank-value"
-                >
-                    —
-                </div>
+                <div id="bank-balance" class="bank-value">—</div>
 
-                <div
-                    id="bank-start"
-                    class="bank-sub"
-                >
-                    Старт: —
-                </div>
+                <div id="bank-start" class="bank-sub">Старт: —</div>
 
             </div>
 
@@ -725,19 +715,9 @@ tr:hover td {
                     Профит
                 </div>
 
-                <div
-                    id="bank-profit"
-                    class="bank-value"
-                >
-                    —
-                </div>
+                <div id="bank-profit" class="bank-value">—</div>
 
-                <div
-                    id="bank-profit-percent"
-                    class="bank-sub"
-                >
-                    —
-                </div>
+                <div id="bank-profit-percent" class="bank-sub">—</div>
 
             </div>
 
@@ -748,16 +728,9 @@ tr:hover td {
                     ROI
                 </div>
 
-                <div
-                    id="bank-roi"
-                    class="bank-value"
-                >
-                    —
-                </div>
+                <div id="bank-roi" class="bank-value">—</div>
 
-                <div class="bank-sub">
-                    От стартового банка
-                </div>
+                <div class="bank-sub">От стартового банка</div>
 
             </div>
 
@@ -768,16 +741,9 @@ tr:hover td {
                     Текущая ставка
                 </div>
 
-                <div
-                    id="bank-current-bet"
-                    class="bank-value"
-                >
-                    —
-                </div>
+                <div id="bank-current-bet" class="bank-value">—</div>
 
-                <div class="bank-sub">
-                    База догона
-                </div>
+                <div class="bank-sub">База догона</div>
 
             </div>
 
@@ -794,66 +760,23 @@ tr:hover td {
     <div class="grid">
 
         <div class="card">
-
-            <div class="card-title">
-                Всего прогнозов
-            </div>
-
-            <div
-                id="total"
-                class="card-value blue"
-            >
-                —
-            </div>
-
+            <div class="card-title">Всего прогнозов</div>
+            <div id="total" class="card-value blue">—</div>
         </div>
 
-
         <div class="card">
-
-            <div class="card-title">
-                Зашло
-            </div>
-
-            <div
-                id="hits"
-                class="card-value green"
-            >
-                —
-            </div>
-
+            <div class="card-title">Зашло</div>
+            <div id="hits" class="card-value green">—</div>
         </div>
 
-
         <div class="card">
-
-            <div class="card-title">
-                Не зашло
-            </div>
-
-            <div
-                id="misses"
-                class="card-value red"
-            >
-                —
-            </div>
-
+            <div class="card-title">Не зашло</div>
+            <div id="misses" class="card-value red">—</div>
         </div>
 
-
         <div class="card">
-
-            <div class="card-title">
-                Проходимость
-            </div>
-
-            <div
-                id="accuracy"
-                class="card-value orange"
-            >
-                —
-            </div>
-
+            <div class="card-title">Проходимость</div>
+            <div id="accuracy" class="card-value orange">—</div>
         </div>
 
     </div>
@@ -870,10 +793,7 @@ tr:hover td {
             🎯 Последний прогноз
         </div>
 
-        <div
-            id="latest"
-            class="latest"
-        >
+        <div id="latest" class="latest">
             Загрузка...
         </div>
 
@@ -891,11 +811,7 @@ tr:hover td {
             📈 Проходимость по дистанции
         </div>
 
-        <div
-            id="rolling"
-            class="rolling"
-        >
-        </div>
+        <div id="rolling" class="rolling"></div>
 
     </section>
 
@@ -914,25 +830,17 @@ tr:hover td {
         <div class="table-wrapper">
 
             <table>
-
                 <thead>
-
                     <tr>
-
                         <th>Догон</th>
                         <th>Прогнозов</th>
                         <th>Зашло</th>
                         <th>Не зашло</th>
                         <th>Проходимость</th>
                         <th>%</th>
-
                     </tr>
-
                 </thead>
-
-                <tbody id="dogon-table">
-                </tbody>
-
+                <tbody id="dogon-table"></tbody>
             </table>
 
         </div>
@@ -942,37 +850,29 @@ tr:hover td {
 
 
     <!-- =====================================================
-         CARDS
+         RANKS
     ====================================================== -->
 
     <section class="section">
 
         <div class="section-title">
-            🃏 Проходимость по картам
+            🃏 Проходимость по рангам
         </div>
 
         <div class="table-wrapper">
 
             <table>
-
                 <thead>
-
                     <tr>
-
-                        <th>Карта</th>
+                        <th>Ранг</th>
                         <th>Прогнозов</th>
                         <th>Зашло</th>
                         <th>Не зашло</th>
                         <th>Проходимость</th>
                         <th>%</th>
-
                     </tr>
-
                 </thead>
-
-                <tbody id="cards-table">
-                </tbody>
-
+                <tbody id="cards-table"></tbody>
             </table>
 
         </div>
@@ -991,11 +891,7 @@ tr:hover td {
             📊 Последние 100 прогнозов
         </div>
 
-        <div
-            id="chart"
-            class="chart"
-        >
-        </div>
+        <div id="chart" class="chart"></div>
 
     </section>
 
@@ -1014,26 +910,18 @@ tr:hover td {
         <div class="table-wrapper">
 
             <table>
-
                 <thead>
-
                     <tr>
-
                         <th>Время</th>
                         <th>Тип</th>
-                        <th>Карта</th>
+                        <th>Ранг</th>
                         <th>Догон</th>
                         <th>Ставка</th>
                         <th>Выплата</th>
                         <th>Баланс</th>
-
                     </tr>
-
                 </thead>
-
-                <tbody id="bank-history-table">
-                </tbody>
-
+                <tbody id="bank-history-table"></tbody>
             </table>
 
         </div>
@@ -1042,10 +930,7 @@ tr:hover td {
 
 
 
-    <div
-        id="updated"
-        class="footer"
-    >
+    <div id="updated" class="footer">
         Обновление...
     </div>
 
@@ -1068,57 +953,42 @@ tr:hover td {
 // ============================================================
 
 function percent(value) {
-
     return Number(value || 0).toFixed(2) + "%";
-
 }
 
 
 function escapeHtml(value) {
-
     return String(value ?? "")
         .replaceAll("&", "&amp;")
         .replaceAll("<", "&lt;")
         .replaceAll(">", "&gt;")
         .replaceAll('"', "&quot;")
         .replaceAll("'", "&#039;");
-
 }
 
 
 function formatMoney(value) {
-
     const num = Number(value || 0);
-
     return num.toLocaleString("ru-RU", {
         minimumFractionDigits: 0,
         maximumFractionDigits: 2,
     }) + " ₽";
-
 }
 
 
 function formatTime(iso) {
-
     if (!iso) return "—";
-
     try {
-
         const date = new Date(iso);
-
         return date.toLocaleString("ru-RU", {
             day: "2-digit",
             month: "2-digit",
             hour: "2-digit",
             minute: "2-digit",
         });
-
     } catch (e) {
-
         return "—";
-
     }
-
 }
 
 
@@ -1127,114 +997,39 @@ function formatTime(iso) {
 // ============================================================
 
 async function loadStats() {
-
     try {
-
-        const response =
-            await fetch(
-                "/api/stats?_=" +
-                Date.now()
-            );
-
-        if (!response.ok) {
-
-            throw new Error(
-                "HTTP " + response.status
-            );
-
-        }
-
-        const data =
-            await response.json();
-
-
+        const response = await fetch("/api/stats?_=" + Date.now());
+        if (!response.ok) throw new Error("HTTP " + response.status);
+        const data = await response.json();
         render(data);
-
-    }
-
-    catch (error) {
-
+    } catch (error) {
         console.error(error);
-
-        document.getElementById(
-            "updated"
-        ).textContent =
-            "Ошибка загрузки статистики";
-
+        document.getElementById("updated").textContent = "Ошибка загрузки статистики";
     }
-
 }
 
 
-// ============================================================
-// LOAD BANK
-// ============================================================
-
 async function loadBank() {
-
     try {
-
-        const response =
-            await fetch(
-                "/api/bank?_=" +
-                Date.now()
-            );
-
-        if (!response.ok) {
-
-            throw new Error(
-                "HTTP " + response.status
-            );
-
-        }
-
-        const data =
-            await response.json();
-
+        const response = await fetch("/api/bank?_=" + Date.now());
+        if (!response.ok) throw new Error("HTTP " + response.status);
+        const data = await response.json();
         renderBank(data);
-
-    }
-
-    catch (error) {
-
+    } catch (error) {
         console.error("Bank error:", error);
-
     }
-
 }
 
 
 async function loadBankHistory() {
-
     try {
-
-        const response =
-            await fetch(
-                "/api/bank/history?_=" +
-                Date.now()
-            );
-
-        if (!response.ok) {
-
-            throw new Error(
-                "HTTP " + response.status
-            );
-
-        }
-
-        const data =
-            await response.json();
-
+        const response = await fetch("/api/bank/history?_=" + Date.now());
+        if (!response.ok) throw new Error("HTTP " + response.status);
+        const data = await response.json();
         renderBankHistory(data);
-
-    }
-
-    catch (error) {
-
+    } catch (error) {
         console.error("Bank history error:", error);
-
     }
-
 }
 
 
@@ -1244,140 +1039,68 @@ async function loadBankHistory() {
 
 function render(data) {
 
-    const overall =
-        data.overall || {};
+    const overall = data.overall || {};
+
+    document.getElementById("total").textContent = overall.total || 0;
+    document.getElementById("hits").textContent = overall.hits || 0;
+    document.getElementById("misses").textContent = overall.misses || 0;
+    document.getElementById("accuracy").textContent = percent(overall.accuracy);
 
 
-    document.getElementById(
-        "total"
-    ).textContent =
-        overall.total || 0;
-
-
-    document.getElementById(
-        "hits"
-    ).textContent =
-        overall.hits || 0;
-
-
-    document.getElementById(
-        "misses"
-    ).textContent =
-        overall.misses || 0;
-
-
-    document.getElementById(
-        "accuracy"
-    ).textContent =
-        percent(overall.accuracy);
-
-
-    // --------------------------------------------------------
     // LATEST
-    // --------------------------------------------------------
-
-    const latest =
-        data.latest;
-
-    const latestElement =
-        document.getElementById(
-            "latest"
-        );
+    const latest = data.latest;
+    const latestElement = document.getElementById("latest");
 
     if (!latest) {
-
-        latestElement.innerHTML =
-            "<div class='latest-item'>" +
-            "Нет данных" +
-            "</div>";
-
-    }
-
-    else {
+        latestElement.innerHTML = "<div class='latest-item'>Нет данных</div>";
+    } else {
 
         let resultText = "⏳ Ожидание";
+        if (latest.result === "hit") resultText = "✅ ЗАШЛО";
+        if (latest.result === "miss") resultText = "❌ НЕ ЗАШЛО";
 
-        if (latest.result === "hit") {
-            resultText = "✅ ЗАШЛО";
-        }
+        const cfPlayerText = latest.cf && latest.cf.player
+            ? Number(latest.cf.player).toFixed(2)
+            : "—";
 
-        if (latest.result === "miss") {
-            resultText = "❌ НЕ ЗАШЛО";
-        }
-
-        const cfText = latest.cf
-            ? Number(latest.cf).toFixed(2)
+        const cfBankerText = latest.cf && latest.cf.banker
+            ? Number(latest.cf.banker).toFixed(2)
             : "—";
 
         latestElement.innerHTML = `
 
             <div class="latest-item">
-
-                <div class="latest-label">
-                    Карта
-                </div>
-
-                <div class="latest-value">
-                    ${escapeHtml(latest.card)}
-                </div>
-
+                <div class="latest-label">Ранг</div>
+                <div class="latest-value">${escapeHtml(latest.rank)}</div>
             </div>
-
 
             <div class="latest-item">
-
-                <div class="latest-label">
-                    Коэффициент
-                </div>
-
-                <div class="latest-value">
-                    ${cfText}
-                </div>
-
+                <div class="latest-label">Коэф. игрок</div>
+                <div class="latest-value">${cfPlayerText}</div>
             </div>
-
 
             <div class="latest-item">
-
-                <div class="latest-label">
-                    Догон
-                </div>
-
-                <div class="latest-value">
-                    D${escapeHtml(latest.dogon)}
-                </div>
-
+                <div class="latest-label">Коэф. банкир</div>
+                <div class="latest-value">${cfBankerText}</div>
             </div>
-
 
             <div class="latest-item">
-
-                <div class="latest-label">
-                    Результат
-                </div>
-
-                <div class="latest-value">
-                    ${resultText}
-                </div>
-
+                <div class="latest-label">Догон</div>
+                <div class="latest-value">D${escapeHtml(latest.dogon)}</div>
             </div>
+
+            <div class="latest-item">
+                <div class="latest-label">Результат</div>
+                <div class="latest-value">${resultText}</div>
+            </div>
+
         `;
-
     }
 
 
-    // --------------------------------------------------------
     // ROLLING
-    // --------------------------------------------------------
-
-    const rolling =
-        data.rolling || {};
-
-    const rollingElement =
-        document.getElementById(
-            "rolling"
-        );
-
+    const rolling = data.rolling || {};
+    const rollingElement = document.getElementById("rolling");
     const rollingPeriods = [
         ["100", "Последние 100"],
         ["500", "Последние 500"],
@@ -1386,223 +1109,84 @@ function render(data) {
 
     rollingElement.innerHTML = "";
 
-    rollingPeriods.forEach(
-        ([key, name]) => {
-
-            const item =
-                rolling[key] || {};
-
-            rollingElement.innerHTML += `
-
-                <div class="rolling-card">
-
-                    <div class="rolling-name">
-                        ${name}
-                    </div>
-
-                    <div class="rolling-value">
-                        ${percent(item.accuracy)}
-                    </div>
-
-                    <div
-                        style="
-                            margin-top:8px;
-                            color:#788598;
-                            font-size:12px;
-                        "
-                    >
-                        ${item.hits || 0}
-                        / ${item.total || 0}
-                    </div>
-
+    rollingPeriods.forEach(([key, name]) => {
+        const item = rolling[key] || {};
+        rollingElement.innerHTML += `
+            <div class="rolling-card">
+                <div class="rolling-name">${name}</div>
+                <div class="rolling-value">${percent(item.accuracy)}</div>
+                <div style="margin-top:8px;color:#788598;font-size:12px;">
+                    ${item.hits || 0} / ${item.total || 0}
                 </div>
-
-            `;
-
-        }
-    );
+            </div>
+        `;
+    });
 
 
-    // --------------------------------------------------------
     // DOGON
-    // --------------------------------------------------------
-
-    const dogonTable =
-        document.getElementById(
-            "dogon-table"
-        );
-
+    const dogonTable = document.getElementById("dogon-table");
     dogonTable.innerHTML = "";
 
-    (data.dogon || []).forEach(
-        item => {
-
-            dogonTable.innerHTML += `
-
-                <tr>
-
-                    <td>
-                        <strong>
-                            D${item.dogon}
-                        </strong>
-                    </td>
-
-                    <td>${item.total}</td>
-
-                    <td class="green">${item.hits}</td>
-
-                    <td class="red">${item.misses}</td>
-
-                    <td>
-
-                        <div class="progress">
-
-                            <div
-                                class="progress-bar"
-                                style="
-                                    width:
-                                    ${Math.min(item.accuracy, 100)}%;
-                                "
-                            ></div>
-
-                        </div>
-
-                    </td>
-
-                    <td>
-                        <strong>
-                            ${percent(item.accuracy)}
-                        </strong>
-                    </td>
-
-                </tr>
-
-            `;
-
-        }
-    );
+    (data.dogon || []).forEach(item => {
+        dogonTable.innerHTML += `
+            <tr>
+                <td><strong>D${item.dogon}</strong></td>
+                <td>${item.total}</td>
+                <td class="green">${item.hits}</td>
+                <td class="red">${item.misses}</td>
+                <td>
+                    <div class="progress">
+                        <div class="progress-bar" style="width:${Math.min(item.accuracy, 100)}%;"></div>
+                    </div>
+                </td>
+                <td><strong>${percent(item.accuracy)}</strong></td>
+            </tr>
+        `;
+    });
 
 
-    // --------------------------------------------------------
-    // CARDS
-    // --------------------------------------------------------
-
-    const cardsTable =
-        document.getElementById(
-            "cards-table"
-        );
-
+    // RANKS
+    const cardsTable = document.getElementById("cards-table");
     cardsTable.innerHTML = "";
 
-    (data.cards || []).forEach(
-        item => {
-
-            cardsTable.innerHTML += `
-
-                <tr>
-
-                    <td>
-                        <strong>
-                            ${escapeHtml(item.card)}
-                        </strong>
-                    </td>
-
-                    <td>${item.total}</td>
-
-                    <td class="green">${item.hits}</td>
-
-                    <td class="red">${item.misses}</td>
-
-                    <td>
-
-                        <div class="progress">
-
-                            <div
-                                class="progress-bar"
-                                style="
-                                    width:
-                                    ${Math.min(item.accuracy, 100)}%;
-                                "
-                            ></div>
-
-                        </div>
-
-                    </td>
-
-                    <td>
-                        <strong>
-                            ${percent(item.accuracy)}
-                        </strong>
-                    </td>
-
-                </tr>
-
-            `;
-
-        }
-    );
+    (data.ranks || []).forEach(item => {
+        cardsTable.innerHTML += `
+            <tr>
+                <td><strong>${escapeHtml(item.rank)}</strong></td>
+                <td>${item.total}</td>
+                <td class="green">${item.hits}</td>
+                <td class="red">${item.misses}</td>
+                <td>
+                    <div class="progress">
+                        <div class="progress-bar" style="width:${Math.min(item.accuracy, 100)}%;"></div>
+                    </div>
+                </td>
+                <td><strong>${percent(item.accuracy)}</strong></td>
+            </tr>
+        `;
+    });
 
 
-    // --------------------------------------------------------
     // CHART
-    // --------------------------------------------------------
-
-    const chart =
-        document.getElementById(
-            "chart"
-        );
-
+    const chart = document.getElementById("chart");
     chart.innerHTML = "";
 
-    (data.chart || []).forEach(
-        item => {
-
-            const bar =
-                document.createElement(
-                    "div"
-                );
-
-            bar.className =
-                "bar " +
-                (
-                    item.result === "hit"
-                        ? "hit"
-                        : "miss"
-                );
-
-            bar.style.height =
-                "100%";
-
-            bar.title =
-                "#N" +
-                item.game +
-                " | " +
-                item.card +
-                " | D" +
-                item.dogon +
-                " | " +
-                (
-                    item.result === "hit"
-                        ? "ЗАШЛО"
-                        : "НЕ ЗАШЛО"
-                );
-
-            chart.appendChild(bar);
-
-        }
-    );
+    (data.chart || []).forEach(item => {
+        const bar = document.createElement("div");
+        bar.className = "bar " + (item.result === "hit" ? "hit" : "miss");
+        bar.style.height = "100%";
+        bar.title =
+            "#N" + item.game +
+            " | ранг " + item.rank +
+            " | D" + item.dogon +
+            " | " + (item.result === "hit" ? "ЗАШЛО" : "НЕ ЗАШЛО");
+        chart.appendChild(bar);
+    });
 
 
-    // --------------------------------------------------------
     // UPDATED
-    // --------------------------------------------------------
-
-    document.getElementById(
-        "updated"
-    ).textContent =
-        "Последнее обновление: " +
-        data.updated_at;
-
+    document.getElementById("updated").textContent =
+        "Последнее обновление: " + data.updated_at;
 }
 
 
@@ -1620,56 +1204,21 @@ function renderBank(data) {
     const roi = Number(data.roi || 0);
     const currentBet = Number(data.current_bet || 0);
 
-    // --- Баланс ---
-    document.getElementById(
-        "bank-balance"
-    ).textContent =
-        formatMoney(balance);
+    document.getElementById("bank-balance").textContent = formatMoney(balance);
+    document.getElementById("bank-start").textContent = "Старт: " + formatMoney(startBalance);
 
-    document.getElementById(
-        "bank-start"
-    ).textContent =
-        "Старт: " + formatMoney(startBalance);
+    const profitEl = document.getElementById("bank-profit");
+    profitEl.textContent = (profit >= 0 ? "+" : "") + formatMoney(profit);
 
-    // --- Профит ---
-    const profitEl =
-        document.getElementById(
-            "bank-profit"
-        );
+    profitEl.classList.remove("profit-positive", "profit-negative");
+    if (profit > 0) profitEl.classList.add("profit-positive");
+    else if (profit < 0) profitEl.classList.add("profit-negative");
 
-    profitEl.textContent =
-        (profit >= 0 ? "+" : "") +
-        formatMoney(profit);
+    document.getElementById("bank-profit-percent").textContent =
+        (profit >= 0 ? "+" : "") + roi.toFixed(2) + "%";
 
-    profitEl.classList.remove(
-        "profit-positive",
-        "profit-negative",
-    );
-
-    if (profit > 0) {
-        profitEl.classList.add("profit-positive");
-    } else if (profit < 0) {
-        profitEl.classList.add("profit-negative");
-    }
-
-    document.getElementById(
-        "bank-profit-percent"
-    ).textContent =
-        (profit >= 0 ? "+" : "") +
-        roi.toFixed(2) + "%";
-
-    // --- ROI ---
-    document.getElementById(
-        "bank-roi"
-    ).textContent =
-        roi.toFixed(2) + "%";
-
-    // --- Текущая ставка ---
-    document.getElementById(
-        "bank-current-bet"
-    ).textContent =
-        formatMoney(currentBet);
-
+    document.getElementById("bank-roi").textContent = roi.toFixed(2) + "%";
+    document.getElementById("bank-current-bet").textContent = formatMoney(currentBet);
 }
 
 
@@ -1679,27 +1228,18 @@ function renderBank(data) {
 
 function renderBankHistory(data) {
 
-    const table =
-        document.getElementById(
-            "bank-history-table"
-        );
-
+    const table = document.getElementById("bank-history-table");
     if (!table) return;
 
     table.innerHTML = "";
 
     if (!Array.isArray(data) || data.length === 0) {
-
         table.innerHTML = `
             <tr>
-                <td colspan="7" style="text-align:center; color:#7e8ba0;">
-                    Нет записей
-                </td>
+                <td colspan="7" style="text-align:center; color:#7e8ba0;">Нет записей</td>
             </tr>
         `;
-
         return;
-
     }
 
     const reversed = [...data].reverse();
@@ -1707,54 +1247,32 @@ function renderBankHistory(data) {
     reversed.forEach(item => {
 
         const type = item.type || "—";
-
         let typeText = type;
         let typeClass = "";
 
-        if (type === "win") {
-            typeText = "✅ WIN";
-            typeClass = "history-type-win";
-        } else if (type === "lose") {
-            typeText = "❌ LOSE";
-            typeClass = "history-type-lose";
-        } else if (type === "return") {
-            typeText = "♻️ RETURN";
-            typeClass = "history-type-return";
-        }
+        if (type === "win") { typeText = "✅ WIN"; typeClass = "history-type-win"; }
+        else if (type === "lose") { typeText = "❌ LOSE"; typeClass = "history-type-lose"; }
+        else if (type === "return") { typeText = "♻️ RETURN"; typeClass = "history-type-return"; }
 
         const time = formatTime(item.at);
-        const card = item.predicted_card || "—";
-        const dogon = item.dogon !== undefined
-            ? "D" + item.dogon
-            : "—";
-        const bet = item.bet !== undefined
-            ? formatMoney(item.bet)
-            : "—";
-        const payout = item.payout !== undefined
-            ? formatMoney(item.payout)
-            : "—";
-        const balance = item.balance_after !== undefined
-            ? formatMoney(item.balance_after)
-            : "—";
+        const rank = item.rank !== undefined ? item.rank : "—";
+        const dogon = item.dogon !== undefined ? "D" + item.dogon : "—";
+        const bet = item.bet !== undefined ? formatMoney(item.bet) : "—";
+        const payout = item.payout !== undefined ? formatMoney(item.payout) : "—";
+        const balance = item.balance_after !== undefined ? formatMoney(item.balance_after) : "—";
 
         table.innerHTML += `
-
             <tr>
-
                 <td>${time}</td>
                 <td class="${typeClass}">${typeText}</td>
-                <td><strong>${escapeHtml(card)}</strong></td>
+                <td><strong>${escapeHtml(rank)}</strong></td>
                 <td>${dogon}</td>
                 <td>${bet}</td>
                 <td>${payout}</td>
                 <td><strong>${balance}</strong></td>
-
             </tr>
-
         `;
-
     });
-
 }
 
 
