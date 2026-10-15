@@ -10,7 +10,7 @@
     content="width=device-width, initial-scale=1.0"
 >
 
-<title>BACCARAT — Статистика рангов</title>
+<title>21 — Статистика рангов</title>
 
 <style>
 
@@ -675,7 +675,7 @@ tr:hover td {
 <header class="header">
 
     <div class="logo">
-        BACCARAT — Статистика рангов
+        21 — Статистика рангов
     </div>
 
 </header>
@@ -1063,10 +1063,6 @@ function render(data) {
             ? Number(latest.cf.player).toFixed(2)
             : "—";
 
-        const cfBankerText = latest.cf && latest.cf.banker
-            ? Number(latest.cf.banker).toFixed(2)
-            : "—";
-
         latestElement.innerHTML = `
 
             <div class="latest-item">
@@ -1077,11 +1073,6 @@ function render(data) {
             <div class="latest-item">
                 <div class="latest-label">Коэф. игрок</div>
                 <div class="latest-value">${cfPlayerText}</div>
-            </div>
-
-            <div class="latest-item">
-                <div class="latest-label">Коэф. банкир</div>
-                <div class="latest-value">${cfBankerText}</div>
             </div>
 
             <div class="latest-item">
