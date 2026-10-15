@@ -180,6 +180,7 @@ def parse_game_message(text):
     is_draw = bool(re.search(r"#X\b", text))
     is_ochko = bool(re.search(r"#O\b", text))
     is_finished = bool(re.search(r"✅", text))
+    is_r = bool(re.search(r"#R\b", text))
 
     return {
         "game_number": game_number,
@@ -194,6 +195,7 @@ def parse_game_message(text):
         "is_draw": is_draw,
         "is_ochko": is_ochko,
         "is_finished": is_finished,
+        "is_r": is_r,
 
         "raw_text": text,
 
@@ -229,6 +231,9 @@ def log_game(game):
 
     if game.get("is_ochko"):
         print("⭕ #O — ОЧКО", flush=True)
+
+    if game.get("is_r"):
+        print("⚠️ #R — АНОМАЛИЯ", flush=True)
 
     if game.get("is_finished"):
         print("✅ — ИГРА ЗАВЕРШЕНА", flush=True)
