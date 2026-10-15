@@ -795,4 +795,66 @@ def main():
     print(f"🎯 Сдвиг цели: +{TARGET_OFFSET}", flush=True)
     print("💸 Ставок на прогноз: 2 (игрок + банкир)", flush=True)
     print(f"🔄 Догоны: Д0..Д{DOGON_GAMES}", flush=True)
-    print(f
+    print(f"⏰ Таймаут: {PREDICTION_TIMEOUT_MINUTES} мин", flush=True)
+    print(
+        f"⏳ Ожидание проверки #R: "
+        f"{PENDING_CHECK_TIMEOUT_MINUTES} мин",
+        flush=True,
+    )
+    print(f"⏳ Финализация: {FINALIZE_WAIT_SECONDS} сек", flush=True)
+    print("==================================================", flush=True)
+
+    delete_webhook()
+    load_bank()
+    load_predictions()
+
+    offset = load_offset()
+
+    print(f"📌 Telegram offset: {offset}", flush=True)
+    print(f"📊 Загружено прогнозов: {len(predictions)}", flush=True)
+    print("==================================================", flush=True)
+    print("🟢 БОТ ГОТОВ", flush=True)
+    print("==================================================", flush=True)
+
+    while True:
+        try:
+            if should_cleanup_now():
+                cleanup_nightly()
+
+            offset = process_telegram_updates(offset, on_game_message)
+
+            finalize_pending_games()
+            resolve_pending_checks()
+            check_predictions()
+            cleanup_games_cache()
+            cleanup_finalized_games()
+            cleanup_predictions()
+
+            time.sleep(POLL_INTERVAL)
+
+        except KeyboardInterrupt:
+            print("\n🛑 Бот остановлен", flush=True)
+            break
+
+        except Exception as e:
+            print(f"❌ Критическая ошибка: {e}", flush=True)
+            import traceback
+            traceback.print_exc()
+            time.sleep(3)
+
+
+# =====================================================================
+# СТАРТ
+# =====================================================================
+
+if __name__ == "__main__":
+    import threading
+    import time
+
+    threading.Thread(target=main, daemon=True).start()
+
+    from web_server import start_web_server
+    start_web_server()
+
+    while True:
+        time.sleep(60)
