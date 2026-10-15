@@ -49,6 +49,7 @@ DIGIT_RANKS = {"2", "3", "4", "5", "6", "7", "8", "9", "10"}
 
 # Таймаут прогноза (минут) — после этого возврат ♻️
 PREDICTION_TIMEOUT_MINUTES = 30
+PENDING_CHECK_TIMEOUT_MINUTES = 5
 
 # Цикл игр (используется для сдвига номера)
 GAME_CYCLE = 1440
