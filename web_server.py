@@ -79,7 +79,8 @@ def get_result(prediction):
     if status in ("miss", "lose", "lost"):
         return "miss"
 
-    if status in ("pending", "active", "waiting"):
+    # pending / active / waiting / pending_check / cancelled → pending
+    if status in ("pending", "active", "waiting", "pending_check", "cancelled"):
         return "pending"
 
     return "pending"
@@ -97,7 +98,7 @@ def get_dogon(prediction):
 
 
 def get_rank(prediction):
-    """Возвращает ранг прогноза (2-10, J, Q, K, A)."""
+    """Возвращает ранг прогноза (6-10, J, Q, K, A)."""
     rank = prediction.get("predicted_rank")
     if rank:
         return str(rank)
@@ -112,16 +113,12 @@ def get_target_offset(prediction):
 
 
 def get_cf(prediction):
-    """Возвращает коэффициент (игрок / банкир)."""
+    """Возвращает коэффициент (только игрок — 21)."""
 
     cf_player = prediction.get("cf_player")
-    cf_banker = prediction.get("cf_banker")
 
-    if cf_player and cf_banker:
-        return {
-            "player": float(cf_player),
-            "banker": float(cf_banker),
-        }
+    if cf_player:
+        return {"player": float(cf_player)}
 
     return None
 
@@ -353,7 +350,7 @@ def health():
 def start_web_server():
 
     print("=" * 60)
-    print("BACCARAT — RANK STATISTICS")
+    print("21 — RANK STATISTICS")
     print("=" * 60)
     print(f"Predictions: {PREDICTIONS_FILE}")
     print(f"Port: {PORT}")
