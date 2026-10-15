@@ -10,19 +10,19 @@ from config import (
     MOSCOW_TZ,
 )
 
-from coefs import get_player_cf, get_banker_cf
+from coefs import get_player_cf
 
 
 # =====================================================================
-# КОНСТАНТЫ ЛОГИКИ СТАВОК
+# КОНСТАНТЫ ЛОГИКИ СТАВОК (21)
 # =====================================================================
 
 DOGON_STEP = 25.0
 CYCLE_STEP = 100.0
 DOGONS_PER_CYCLE = 4
 
-# 2 ставки: игрок + банкир
-BETS_PER_PREDICTION = 2
+# Ставка только на игрока — 1 ставка на прогноз
+BETS_PER_PREDICTION = 1
 
 
 # =====================================================================
@@ -106,13 +106,13 @@ def get_current_bet():
 
 def bet_for_dogon(base_bet, dogon_index):
     """
-    Сумма 2 ставок (игрок + банкир) для конкретного догона.
+    Сумма ставки (только игрок) для конкретного догона.
 
     При base_bet = 50:
-        Д0: 2 × 50 = 100
-        Д1: 2 × 75 = 150
-        Д2: 2 × 100 = 200
-        Д3: 2 × 125 = 250
+        Д0: 50
+        Д1: 75
+        Д2: 100
+        Д3: 125
     """
 
     one_bet = base_bet + dogon_index * DOGON_STEP
@@ -168,8 +168,8 @@ def apply_win(prediction, dogon_index, found):
     Прогноз выиграл.
 
     found — словарь:
-        {"card": "10♠️", "where": "player"} или
-        {"card": "10♥️", "where": "dealer"}
+        {"card": "Q♣️", "where": "player"}
+        (в 21 where всегда "player")
     """
 
     base_bet = prediction.get("base_bet", bank_state["current_bet"])
@@ -177,14 +177,8 @@ def apply_win(prediction, dogon_index, found):
     one_bet = base_bet + dogon_index * DOGON_STEP
 
     rank = prediction.get("predicted_rank")
-    where = found.get("where")
 
-    if where == "player":
-        cf = get_player_cf(rank)
-    elif where == "dealer":
-        cf = get_banker_cf(rank)
-    else:
-        cf = 5.0
+    cf = get_player_cf(rank)
 
     payout = round(one_bet * cf, 2)
 
@@ -198,7 +192,7 @@ def apply_win(prediction, dogon_index, found):
         "rank": rank,
         "dogon": dogon_index,
         "card": found.get("card"),
-        "where": where,
+        "where": "player",
         "cf": cf,
         "bet": one_bet,
         "payout": payout,
