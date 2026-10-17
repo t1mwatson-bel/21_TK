@@ -122,8 +122,6 @@ def telegram_send(text, chat_id=None):
 
 
 def telegram_edit(message_id, text, chat_id=None):
-    """Редактирует сообщение в канале прогнозов."""
-
     if not message_id:
         return False
 
@@ -143,7 +141,13 @@ def telegram_edit(message_id, text, chat_id=None):
 
         data = response.json()
 
-        return bool(data.get("ok"))
+        if data.get("ok"):
+            return True
+
+        # Не шумим на "not modified" — это нормально
+        desc = data.get("description", "")
+        if "not modified" not in desc:
+            print(f"⚠️ editMessageText: {data}", flush=True)
 
     except Exception as e:
         print(f"⚠️ Ошибка редактирования Telegram: {e}", flush=True)
