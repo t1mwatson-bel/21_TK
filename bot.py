@@ -44,6 +44,7 @@ from telegram_api import (
 from bank import (
     load_bank,
     save_bank,
+    get_balance,
     get_current_bet,
     bet_for_dogon,
     apply_dogon_bet,
@@ -219,16 +220,22 @@ def find_r_anomaly(game_number):
 def make_prediction_message(prediction):
     target = prediction["target_number"]
     rank = prediction["predicted_rank"]
-    return f"🎯 Игра: <b>#N{target}</b>: {rank}"
+    bet = int(prediction.get("bet", 0))
+    return f"🎯 Игра: <b>#N{target}</b>: {rank} ставка {bet}₽"
 
 
 def make_result_message(prediction, result, found_card=None):
 
     target = prediction["target_number"]
     rank = prediction["predicted_rank"]
+    bet = int(prediction.get("bet", 0))
 
     if result == "win":
-        return f"🎯 Игра: <b>#N{target}</b>: {rank} ✅"
+        balance = int(get_balance())
+        return (
+            f"🎯 Игра: <b>#N{target}</b>: {rank} ✅ при {bet}₽\n"
+            f"🤑 Баланс {balance}₽"
+        )
 
     elif result == "lose":
         return f"🎯 Игра: <b>#N{target}</b>: {rank} ❌"
@@ -383,6 +390,9 @@ def create_prediction(game):
 
 def send_prediction(prediction):
 
+    # Списываем Д0 ДО отправки — чтобы в сообщении была правильная ставка
+    apply_dogon_bet(prediction, 0)
+
     message = make_prediction_message(prediction)
     message_id = telegram_send(message)
 
@@ -396,14 +406,13 @@ def send_prediction(prediction):
     prediction["message_id"] = message_id
     prediction["sent_at"] = datetime.now(MOSCOW_TZ).isoformat()
 
-    apply_dogon_bet(prediction, 0)
-
     save_predictions()
 
     print(
         f"📤 ПРОГНОЗ ОТПРАВЛЕН: "
         f"#N{prediction['target_number']} "
-        f"ранг {prediction['predicted_rank']}",
+        f"ранг {prediction['predicted_rank']} "
+        f"ставка {prediction['bet']}₽",
         flush=True,
     )
 
@@ -676,12 +685,12 @@ def check_predictions():
                     prediction["close_reason"] = "timeout"
                     prediction["closed_at"] = now.isoformat()
 
+                    apply_return(prediction, prediction.get("bet", 0))
+
                     telegram_edit(
                         prediction.get("message_id"),
                         make_result_message(prediction, "return"),
                     )
-
-                    apply_return(prediction, prediction.get("bet", 0))
 
                     print(
                         f"♻️ ВОЗВРАТ #N{target} "
@@ -724,12 +733,13 @@ def check_predictions():
             prediction["dogon"] = win_dogon
             prediction["closed_at"] = now.isoformat()
 
+            # Сначала зачисление выигрыша, потом edit — чтобы баланс был новый
+            apply_win(prediction, win_dogon, found_card)
+
             telegram_edit(
                 prediction.get("message_id"),
                 make_result_message(prediction, "win", found_card),
             )
-
-            apply_win(prediction, win_dogon, found_card)
 
             print("", flush=True)
             print(f"✅ ПРОГНОЗ ЗАШЁЛ #N{target}", flush=True)
@@ -755,22 +765,33 @@ def check_predictions():
         if not all_finalized:
             continue
 
-        # LOSE
+        # LOSE на текущем догоне
         if current_dogon < DOGON_GAMES:
 
             next_dogon = current_dogon + 1
+
+            # apply_lose в новом bank.py спишет следующую ставку
+            # и положит её в prediction["bet"]
             apply_lose(prediction, current_dogon)
             prediction["dogon"] = next_dogon
 
+            # редактируем сообщение — показываем НОВУЮ ставку
+            telegram_edit(
+                prediction.get("message_id"),
+                make_prediction_message(prediction),
+            )
+
             print(
                 f"❌ Д{current_dogon} проиграл, "
-                f"переходим на Д{next_dogon}",
+                f"переходим на Д{next_dogon} "
+                f"(ставка {int(prediction['bet'])}₽)",
                 flush=True,
             )
 
             changed = True
             continue
 
+        # Последний догон проигран — закрываем
         apply_lose(prediction, current_dogon)
 
         prediction["status"] = "lose"
@@ -870,7 +891,7 @@ def main():
     print("==================================================", flush=True)
     print("📡 Игры: CHANNEL_STATS", flush=True)
     print("📤 Прогнозы: CHANNEL_PROGNOZ", flush=True)
-    print("🎯 Алгоритм: первая карта 6..A, 3-5 карт, дилер 0", flush=True)
+    print("🎯 Алгоритм: первая карта J/Q/K/A, 3-5 карт, дилер 0", flush=True)
     print(f"🎯 Сдвиг цели: +{TARGET_OFFSET}", flush=True)
     print(f"📤 Публикация: за {PUBLISH_OFFSET} игры до цели", flush=True)
     print("💸 Ставок на прогноз: 1 (только игрок)", flush=True)
