@@ -1,5 +1,6 @@
 import os
 import json
+import math
 
 from datetime import datetime
 
@@ -17,9 +18,11 @@ from coefs import get_player_cf
 # КОНСТАНТЫ ЛОГИКИ СТАВОК (21)
 # =====================================================================
 
-DOGON_STEP = 25.0
-CYCLE_STEP = 100.0
-DOGONS_PER_CYCLE = 4
+# 7 догонов: Д0, Д1, Д2, Д3, Д4, Д5, Д6
+DOGONS_PER_CYCLE = 7
+
+# Коэффициент догона: ×1.5 от ОКРУГЛЁННОЙ предыдущей, ceil вверх
+DOGON_MULTIPLIER = 1.5
 
 # Ставка только на игрока — 1 ставка на прогноз
 BETS_PER_PREDICTION = 1
@@ -104,25 +107,36 @@ def get_current_bet():
 # ЛОГИКА СТАВОК
 # =====================================================================
 
+def next_dogon_bet(current_bet):
+    """
+    Следующая ставка догона: ×1.5 от ТЕКУЩЕЙ (уже округлённой),
+    округление ВВЕРХ до целого рубля.
+
+    Цепочка от 50:
+        50 → 75 → 113 → 170 → 255 → 383 → 575
+    """
+    return int(math.ceil(float(current_bet) * DOGON_MULTIPLIER))
+
+
 def bet_for_dogon(base_bet, dogon_index):
     """
     Сумма ставки (только игрок) для конкретного догона.
 
-    При base_bet = 50:
+    Считаем от округлённой ставки шаг за шагом:
         Д0: 50
         Д1: 75
-        Д2: 100
-        Д3: 125
+        Д2: 113
+        Д3: 170
+        Д4: 255
+        Д5: 383
+        Д6: 575
     """
+    bet = int(round(float(base_bet)))
 
-    one_bet = base_bet + dogon_index * DOGON_STEP
+    for _ in range(int(dogon_index)):
+        bet = next_dogon_bet(bet)
 
-    return round(one_bet * BETS_PER_PREDICTION, 2)
-
-
-def next_cycle_base(current_base):
-    """База следующего цикла: current_base + 100."""
-    return round(current_base + CYCLE_STEP, 2)
+    return bet * BETS_PER_PREDICTION
 
 
 # =====================================================================
@@ -134,6 +148,9 @@ def apply_dogon_bet(prediction, dogon_index):
     base_bet = prediction.get("base_bet", bank_state["current_bet"])
 
     amount = bet_for_dogon(base_bet, dogon_index)
+
+    # записываем фактическую ставку в прогноз (для сообщений)
+    prediction["bet"] = amount
 
     bank_state["balance"] = round(bank_state["balance"] - amount, 2)
 
@@ -169,12 +186,11 @@ def apply_win(prediction, dogon_index, found):
 
     found — словарь:
         {"card": "Q♣️", "where": "player"}
-        (в 21 where всегда "player")
     """
 
     base_bet = prediction.get("base_bet", bank_state["current_bet"])
 
-    one_bet = base_bet + dogon_index * DOGON_STEP
+    one_bet = bet_for_dogon(base_bet, dogon_index)
 
     rank = prediction.get("predicted_rank")
 
@@ -184,6 +200,7 @@ def apply_win(prediction, dogon_index, found):
 
     bank_state["balance"] = round(bank_state["balance"] + payout, 2)
 
+    # после победы база возвращается к стартовой
     bank_state["current_bet"] = START_BET
 
     record = {
@@ -217,12 +234,19 @@ def apply_win(prediction, dogon_index, found):
 # =====================================================================
 
 def apply_lose(prediction, dogon_index):
+    """
+    Прогноз не зашёл на догоне dogon_index.
 
-    base_bet = prediction.get("base_bet", bank_state["current_bet"])
+    Если это НЕ последний догон — списываем следующую ставку
+    и записываем её в prediction["bet"] (для редактирования сообщения).
+    Если последний — сбрасываем базу на START_BET.
+    """
 
     if dogon_index < DOGONS_PER_CYCLE - 1:
 
         next_index = dogon_index + 1
+
+        # спишет следующую ставку и обновит prediction["bet"]
         apply_dogon_bet(prediction, next_index)
 
         record = {
@@ -231,14 +255,15 @@ def apply_lose(prediction, dogon_index):
             "rank": prediction.get("predicted_rank"),
             "dogon": dogon_index,
             "next_dogon": next_index,
+            "next_bet": prediction.get("bet"),
             "balance_after": bank_state["balance"],
             "at": datetime.now(MOSCOW_TZ).isoformat(),
         }
 
     else:
 
-        new_base = next_cycle_base(base_bet)
-        bank_state["current_bet"] = new_base
+        # все 7 догонов проиграны — база сбрасывается
+        bank_state["current_bet"] = START_BET
 
         record = {
             "type": "lose",
@@ -246,7 +271,7 @@ def apply_lose(prediction, dogon_index):
             "rank": prediction.get("predicted_rank"),
             "dogon": dogon_index,
             "cycle_lost": True,
-            "next_base": new_base,
+            "next_base": START_BET,
             "balance_after": bank_state["balance"],
             "at": datetime.now(MOSCOW_TZ).isoformat(),
         }
