@@ -191,16 +191,46 @@ def has_active_prediction():
 
 
 # =====================================================================
-# ПОИСК АНОМАЛИИ #R В ИГРЕ ПО НОМЕРУ
+# АНОМАЛИЯ: #R ИЛИ ДИЛЕР БЕЗ КАРТ
 # =====================================================================
 
+def is_anomaly_game(game):
+    """
+    Аномалия, если:
+      - есть #R, ИЛИ
+      - у дилера 0 карт (задвоение условия триггера в соседней игре)
+
+    ⚠️ Для САМОГО триггера не вызывается — там дилер 0 это норма.
+    """
+    if not game:
+        return False
+
+    if game.get("is_r"):
+        return True
+
+    if len(game.get("dealer_cards", [])) == 0:
+        return True
+
+    return False
+
+
 def find_r_anomaly(game_number):
+    """
+    Возвращает:
+      True  — игра есть и она аномальная (#R или дилер 0)
+      False — игра есть и она чистая
+      None  — игры нет в кэше (неизвестно)
+    """
+
     game = finalized_games.get(game_number)
+
     if not game:
         game = games_cache.get(game_number)
+
     if not game:
         return None
-    return bool(game.get("is_r"))
+
+    return is_anomaly_game(game)
 
 
 # =====================================================================
@@ -272,13 +302,16 @@ def create_prediction(game):
     trigger_id = game.get("game_id")
     predicted_rank = trigger["predicted_rank"]
 
+    # ---- ПРОВЕРКА «ПЕРЕД»: #N(trigger - 1) ----
+    # Аномалия = #R ИЛИ дилер 0 карт
     prev_number = trigger_number - 1
     prev_anomaly = find_r_anomaly(prev_number)
 
     if prev_anomaly is True:
         print("", flush=True)
-        print("⛔ ПРОГНОЗ НЕ СОЗДАН (аномалия #R перед триггером)", flush=True)
+        print("⛔ ПРОГНОЗ НЕ СОЗДАН (аномалия перед триггером)", flush=True)
         print(f"📌 Триггер: #N{trigger_number}", flush=True)
+        print(f"⚠️ Аномалия: #N{prev_number}", flush=True)
         return None
 
     target_number = add_game_offset(trigger_number, TARGET_OFFSET)
@@ -310,7 +343,7 @@ def create_prediction(game):
         "bet": base_bet,
         "status": "pending_check",
         "dogon": 0,
-        "dogon_processed": 0,   # ← сколько догонов уже обработано
+        "dogon_processed": 0,
         "created_at": datetime.now(MOSCOW_TZ).isoformat(),
         "sent_at": None,
         "closed_at": None,
@@ -332,6 +365,7 @@ def create_prediction(game):
     print(f"🎯 Цель: #N{target_number}", flush=True)
     print(f"📤 Публикация: #N{publish_number}", flush=True)
     print(f"💰 Ставка Д0: {base_bet} ₽", flush=True)
+    print(f"⏳ Ожидаем проверку #N{trigger_number + 1}", flush=True)
 
     return prediction
 
@@ -365,7 +399,7 @@ def send_prediction(prediction):
 
 
 # =====================================================================
-# РАЗРЕШЕНИЕ ОТЛОЖЕННЫХ ПРОГНОЗОВ (проверка #R)
+# РАЗРЕШЕНИЕ ОТЛОЖЕННЫХ ПРОГНОЗОВ (проверка #R ИЛИ дилер 0)
 # =====================================================================
 
 def resolve_pending_checks():
@@ -389,11 +423,12 @@ def resolve_pending_checks():
         check_game = games_cache.get(check_number) or finalized_games.get(check_number)
 
         if check_game is not None:
-            if check_game.get("is_r"):
+            # Аномалия = #R ИЛИ дилер 0 карт
+            if is_anomaly_game(check_game):
                 prediction["status"] = "cancelled"
                 prediction["close_reason"] = "anomaly_after"
                 prediction["closed_at"] = now.isoformat()
-                print(f"⛔ ПРОГНОЗ ОТМЕНЁН (аномалия #R после триггера) #N{trigger_number}", flush=True)
+                print(f"⛔ ПРОГНОЗ ОТМЕНЁН (аномалия после триггера) #N{trigger_number} → #N{check_number}", flush=True)
                 changed = True
                 continue
             else:
@@ -549,7 +584,7 @@ def check_predictions():
             game_number = add_game_offset(target, dogon_index)
             game = finalized_games.get(game_number)
 
-            # игры ещё нет — ждём (не прыгаем вперёд!)
+            # игры ещё нет — ждём (не прыгаем вперёд)
             if not game:
                 break
 
@@ -563,7 +598,7 @@ def check_predictions():
 
             # проиграли этот догон
             if dogon_index < DOGON_GAMES:
-                apply_lose(prediction, dogon_index)   # спишет следующий, обновит prediction["bet"]
+                apply_lose(prediction, dogon_index)
                 prediction["dogon"] = dogon_index + 1
 
                 telegram_edit(
@@ -687,6 +722,7 @@ def main():
     print("📡 Игры: CHANNEL_STATS", flush=True)
     print("📤 Прогнозы: CHANNEL_PROGNOZ", flush=True)
     print("🎯 Алгоритм: первая карта J/Q/K/A, 3-5 карт, дилер 0", flush=True)
+    print("⚠️ Аномалия: #R ИЛИ дилер 0 карт в соседней игре", flush=True)
     print(f"🎯 Сдвиг цели: +{TARGET_OFFSET}", flush=True)
     print(f"📤 Публикация: за {PUBLISH_OFFSET} игры до цели", flush=True)
     print(f"🔄 Догоны: Д0..Д{DOGON_GAMES}", flush=True)
