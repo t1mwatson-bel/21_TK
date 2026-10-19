@@ -844,11 +844,8 @@ def check_predictions():
         if current_dogon < max_dogon:
             next_dogon = current_dogon + 1
 
-            # Списываем текущую ставку.
-            apply_lose(
-                p,
-                current_dogon
-            )
+            # Списываем текущую ставку (внутри bank.py уже спишется следующая)
+            apply_lose(p, current_dogon)
 
             p["dogon"] = next_dogon
             p["bet"] = calculate_bet_amount(
@@ -857,11 +854,7 @@ def check_predictions():
             )
             p["sent_at"] = now.isoformat()
 
-            # Ставка следующего догона.
-            apply_dogon_bet(
-                p,
-                next_dogon
-            )
+            # УБРАЛИ apply_dogon_bet(p, next_dogon), так как apply_lose уже это сделала!
 
             # Редактируем исходное сообщение.
             if p.get("message_id"):
