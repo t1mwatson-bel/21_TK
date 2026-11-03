@@ -10,7 +10,7 @@
     content="width=device-width, initial-scale=1.0"
 >
 
-<title>21 — Статистика рангов</title>
+<title>🎄 21 — Статистика рангов</title>
 
 <style>
 
@@ -38,6 +38,8 @@ body {
     color: #ffffff;
 
     min-height: 100vh;
+
+    overflow-x: hidden;
 }
 
 
@@ -66,6 +68,12 @@ body {
         0 0 10px rgba(0, 255, 200, .6),
         0 0 20px rgba(0, 200, 255, .5),
         0 0 40px rgba(120, 100, 255, .5);
+}
+
+/* Новогоднее свечение для логотипа */
+.logo span {
+    color: #ff5d70;
+    text-shadow: 0 0 10px #ff5d70, 0 0 20px #ff5d70;
 }
 
 .subtitle {
@@ -664,6 +672,54 @@ tr:hover td {
 
 }
 
+/* =========================================================
+   НОВОГОДНИЙ ДЕКОР
+========================================================= */
+
+/* Гирлянда */
+.garland {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 12px;
+    background: repeating-linear-gradient(
+        90deg,
+        #ff0000 0%, #ff0000 4%, 
+        #ffa500 4%, #ffa500 8%, 
+        #ffff00 8%, #ffff00 12%, 
+        #00ff00 12%, #00ff00 16%, 
+        #00ffff 16%, #00ffff 20%, 
+        #0000ff 20%, #0000ff 24%, 
+        #ff00ff 24%, #ff00ff 28%
+    );
+    z-index: 9999;
+    box-shadow: 0 0 15px rgba(255,255,255,0.6);
+    animation: glow 2s infinite alternate;
+}
+
+@keyframes glow {
+    from { box-shadow: 0 0 5px #fff; }
+    to { box-shadow: 0 0 25px #fff, 0 0 35px #ff0000; }
+}
+
+/* Снежинки */
+.snowflake {
+    position: fixed;
+    top: -20px;
+    color: #fff;
+    font-family: Arial;
+    user-select: none;
+    pointer-events: none;
+    z-index: 9998;
+    animation: fall linear infinite;
+    text-shadow: 0 0 8px #fff;
+}
+
+@keyframes fall {
+    to { transform: translateY(110vh) rotate(360deg); }
+}
+
 </style>
 
 </head>
@@ -671,11 +727,13 @@ tr:hover td {
 
 <body>
 
+<!-- Гирлянда -->
+<div class="garland"></div>
 
 <header class="header">
 
     <div class="logo">
-        21 — Статистика рангов
+        <span>❄</span> 21 — Статистика рангов <span>❄</span>
     </div>
 
 </header>
@@ -1283,6 +1341,35 @@ loadBankHistory();
 setInterval(loadStats, 5000);
 setInterval(loadBank, 5000);
 setInterval(loadBankHistory, 15000);
+
+
+// ============================================================
+// НОВОГОДНИЕ СНЕЖИНКИ
+// ============================================================
+
+function createSnowflake() {
+    const snowflake = document.createElement('div');
+    snowflake.classList.add('snowflake');
+    
+    // Случайный символ (снежинка или елочка)
+    const symbols = ['❅', '❆', '❄', '🎄'];
+    snowflake.innerHTML = symbols[Math.floor(Math.random() * symbols.length)];
+    
+    snowflake.style.left = Math.random() * 100 + 'vw';
+    snowflake.style.animationDuration = (Math.random() * 4 + 3) + 's'; // От 3 до 7 секунд
+    snowflake.style.opacity = Math.random() * 0.6 + 0.3;
+    snowflake.style.fontSize = (Math.random() * 15 + 10) + 'px';
+    
+    document.body.appendChild(snowflake);
+
+    // Удаляем снежинку после падения
+    setTimeout(() => {
+        snowflake.remove();
+    }, 8000);
+}
+
+// Создаем снежинки каждые 150мс (чтобы не грузить телефон)
+setInterval(createSnowflake, 150);
 
 </script>
 
