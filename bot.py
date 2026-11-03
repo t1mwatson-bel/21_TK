@@ -277,7 +277,7 @@ def create_prediction(game):
         print(f"⏳ #N{trigger_number}: ждем завершения игры #{before_number}", flush=True)
         return None
 
-    prediction_data = calculate_prediction(trigger)
+    prediction_data = calculate_prediction(trigger, game)
     target_games = prediction_data["target_games"]
 
     # Вычисляем игру для публикации (за 2 игры до Д0)
