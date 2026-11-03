@@ -202,16 +202,14 @@ def has_active_prediction():
 
 def make_prediction_message(prediction):
     target_games = prediction["target_games"]
-    rank = prediction["predicted_rank"]
     suits = " или ".join(prediction["predicted_suits"])
     bet = prediction.get("bet", BASE_BET)
     
     games_str = ", ".join(f"#{g}" for g in target_games)
     
     return (
-        f"🎯 Триггер #{prediction['trigger_number']}: "
-        f"Игры: <b>{games_str}</b>\n"
-        f"Ждем: <b>{rank}{suits}</b> | Ставка: {bet}₽"
+        f"🎯 Игры: <b>{games_str}</b>\n"
+        f"Ждем: <b>{suits}</b> | Ставка: {bet}₽"
     )
 
 
