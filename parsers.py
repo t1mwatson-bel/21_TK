@@ -170,6 +170,8 @@ def calculate_prediction(trigger_data):
 def check_prediction_result(game, prediction):
     target_rank = prediction["predicted_rank"]
     target_suits = prediction["predicted_suits"]
+    
+    found_cards = []
 
     # Проверяем у игрока
     for card in game.get("player_cards", []):
@@ -177,7 +179,7 @@ def check_prediction_result(game, prediction):
         r = normalize_rank(card.get("rank"))
         s = normalize_suit(card.get("suit"))
         if r == target_rank and s in target_suits:
-            return {"card": card_to_text(card), "rank": r, "suit": s, "who": "player"}
+            found_cards.append({"card": card_to_text(card), "rank": r, "suit": s, "who": "player"})
 
     # Проверяем у дилера
     for card in game.get("dealer_cards", []):
@@ -185,9 +187,9 @@ def check_prediction_result(game, prediction):
         r = normalize_rank(card.get("rank"))
         s = normalize_suit(card.get("suit"))
         if r == target_rank and s in target_suits:
-            return {"card": card_to_text(card), "rank": r, "suit": s, "who": "dealer"}
+            found_cards.append({"card": card_to_text(card), "rank": r, "suit": s, "who": "dealer"})
             
-    return None
+    return found_cards
 
 # =====================================================================
 # ЛОГ ИГРЫ (ДЛЯ КОНСОЛИ)
