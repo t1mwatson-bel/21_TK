@@ -257,7 +257,6 @@ def create_prediction(game):
     if has_active_prediction():
         return None
 
-    # 1. Ищем триггер по новым правилам
     trigger = find_new_trigger(game)
     if not trigger:
         return None
@@ -270,21 +269,17 @@ def create_prediction(game):
     except (ValueError, TypeError):
         return None
 
-    # 2. Проверка на #R перед триггером (аномалия)
-    # Чтобы не усложнять, смотрим игру до триггера в кэше
     before_number = trigger_number - 1
     if before_number < 1:
-        before_number = 1440 # Цикл
+        before_number = 1440 
     before_game = get_game(before_number)
     
     if before_game and before_game.get("is_r"):
         print(f"⛔ #N{trigger_number}: #R перед триггером, пропуск", flush=True)
         return None
 
-    # 3. Считаем прогноз (целевые игры и масти)
     prediction_data = calculate_prediction(trigger)
 
-    # 4. Формируем объект прогноза для бота
     prediction = {
         "algorithm": "new_logic_v1",
         "trigger_number": trigger_number,
@@ -296,13 +291,13 @@ def create_prediction(game):
         
         "base_bet": BASE_BET,
         "bet": BASE_BET,
-        "status": "pending_check",
+        "status": "pending_publish", # <--- ИСПРАВЛЕНО: теперь сразу на отправку
         
         "created_at": now_moscow().isoformat(),
         "sent_at": None,
         "closed_at": None,
         "message_id": None,
-        "pending_publish": False,
+        "pending_publish": True, # <--- Флаг для отправки
         "result_game": None,
         "found_card": None,
         "last_publish_attempt": None,
@@ -324,6 +319,8 @@ def send_prediction(prediction):
         return True
 
     message = make_prediction_message(prediction)
+    print(f"DEBUG: Пытаюсь отправить сообщение: {message}", flush=True) # <--- ДЕБАГ
+
     prediction["status"] = "pending_publish"
     prediction["pending_publish"] = True
     prediction["last_publish_attempt"] = now_moscow().isoformat()
@@ -331,7 +328,9 @@ def send_prediction(prediction):
     save_predictions()
 
     try:
+        print("DEBUG: Вызываю telegram_send...", flush=True) # <--- ДЕБАГ
         response = telegram_send(message)
+        print(f"DEBUG: Ответ от Telegram: {response}", flush=True) # <--- ДЕБАГ
         message_id = normalize_message_id(response)
     except Exception as e:
         print(f"⚠️ Ошибка публикации #{prediction['trigger_number']}: {e}", flush=True)
@@ -351,7 +350,6 @@ def send_prediction(prediction):
     prediction["status"] = "pending"
     prediction["pending_publish"] = False
 
-    # Списываем ставку при отправке
     apply_dogon_bet(prediction, 0)
 
     save_state()
@@ -372,18 +370,16 @@ def check_predictions():
             continue
 
         target_games = p.get("target_games", [])
+        last_game = target_games[-1] if target_games else 0
         
-        # Проверяем, пришла ли уже какая-то из целевых игр
         for game_num in target_games:
             game = finalized_games.get(game_num)
             if not game:
                 continue
             
-            # Проверяем, есть ли нужная карта у игрока или дилера
             found_card = check_prediction_result(game, p)
             
             if found_card:
-                # ВЫИГРЫШ
                 p["status"] = "win"
                 p["found_card"] = found_card
                 p["result_game"] = game_num
@@ -399,13 +395,9 @@ def check_predictions():
                 break
 
         if p.get("status") == "pending":
-            # Таймаут, если все 4 игры прошли, а карты нет
-            # Определяем последнюю игру в пуле
-            last_game = target_games[-1] if target_games else 0
-            # Если последняя игра уже пришла (или таймаут), закрываем как проигрыш
-            game = finalized_games.get(last_game)
-            if game:
-                # ПРОИГРЫШ
+            # Если последняя игра из пула уже завершилась, а карты нет — проигрыш
+            final_game_data = finalized_games.get(last_game)
+            if final_game_data:
                 p["status"] = "lose"
                 p["closed_at"] = now.isoformat()
                 p["result_game"] = last_game
@@ -417,10 +409,11 @@ def check_predictions():
                 
                 print(f"❌ ПРОГНОЗ #{p['trigger_number']} ПРОИГРАН (игры {target_games} прошли)", flush=True)
                 changed = True
+                continue
                 
             # Проверка по времени
             sent_at = parse_datetime(p.get("sent_at"), now)
-            if now - sent_at > timedelta(minutes=PREDICTION_TIMEOUT_MINUTES):
+            if sent_at and now - sent_at > timedelta(minutes=PREDICTION_TIMEOUT_MINUTES):
                  p["status"] = "return"
                  p["closed_at"] = now.isoformat()
                  apply_return(p, p.get("bet", 0))
@@ -438,18 +431,9 @@ def check_predictions():
 # =====================================================================
 
 def resolve_pending_publishes():
-    now = now_moscow()
-    all_numbers = list(games_cache.keys()) + list(finalized_games.keys())
-    latest_game = max(all_numbers) if all_numbers else 0
-
     for p in predictions:
-        if p.get("status") != "pending_publish":
-            continue
-        
-        # Публикуем сразу, так как у нас нет задержки на проверку #R
-        if p.get("pending_publish") and not p.get("message_id"):
+        if p.get("status") == "pending_publish" and not p.get("message_id"):
             send_prediction(p)
-            continue
 
 
 # =====================================================================
