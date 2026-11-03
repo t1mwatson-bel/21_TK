@@ -191,3 +191,38 @@ def check_prediction_result(game, prediction):
             return card_to_text(card)
     
     return None
+    
+    # =====================================================================
+# ЛОГ ИГРЫ (ДЛЯ КОНСОЛИ)
+# =====================================================================
+def log_game(game):
+    player = game.get("player_cards", [])
+    dealer = game.get("dealer_cards", [])
+
+    print("", flush=True)
+    print("────────────────────────────────────", flush=True)
+    print(f"🎮 ИГРА #N{game['game_number']}", flush=True)
+    print(
+        f"👤 P: {game['player_score']} "
+        f"({cards_to_text(player)})",
+        flush=True,
+    )
+    print(
+        f"🎰 D: {game['dealer_score']} "
+        f"({cards_to_text(dealer)})",
+        flush=True,
+    )
+
+    if game.get("is_draw"):
+        print("🔰 #X — НИЧЬЯ", flush=True)
+
+    if game.get("is_ochko"):
+        print("⭕ #O — ОЧКО", flush=True)
+
+    if game.get("is_r"):
+        print("⚠️ #R — АНОМАЛИЯ", flush=True)
+
+    if game.get("is_finished"):
+        print("✅ — ИГРА ЗАВЕРШЕНА", flush=True)
+
+    print("────────────────────────────────────", flush=True)
