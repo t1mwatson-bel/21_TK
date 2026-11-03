@@ -61,6 +61,9 @@ BASE_BET = 50.0
 DOGON_BETS = (50, 75, 113, 170)
 MAX_DOGON_INDEX = 3
 
+# За сколько игр до начала пула публикуем прогноз
+PUBLISH_OFFSET_GAMES = 2
+
 # =====================================================================
 # ПРОВЕРКА ENV
 # =====================================================================
@@ -129,6 +132,13 @@ def format_games_range(target_games):
 def calculate_bet_amount(dogon_index):
     index = max(0, min(int(dogon_index), MAX_DOGON_INDEX))
     return DOGON_BETS[index]
+
+def get_latest_game_number():
+    """Возвращает номер самой свежей игры из кэша."""
+    all_nums = list(games_cache.keys()) + list(finalized_games.keys()) + list(pending_games.keys())
+    if not all_nums:
+        return 0
+    return max(all_nums)
 
 # =====================================================================
 # ОЧИСТКА
@@ -253,6 +263,13 @@ def create_prediction(game):
         return None
 
     prediction_data = calculate_prediction(trigger)
+    target_games = prediction_data["target_games"]
+
+    # Вычисляем игру, на которой нужно опубликовать (за N игр до Д0)
+    first_target = target_games[0]
+    publish_game = first_target - PUBLISH_OFFSET_GAMES
+    if publish_game < 1:
+        publish_game = 1440 + publish_game  # Цикличность
 
     prediction = {
         "algorithm": "new_logic_v1",
@@ -261,11 +278,12 @@ def create_prediction(game):
         "trigger_card": trigger.get("trigger_card_text"),
         "predicted_rank": prediction_data["predicted_rank"],
         "predicted_suits": prediction_data["predicted_suits"],
-        "target_games": prediction_data["target_games"],
+        "target_games": target_games,
+        "publish_game": publish_game,
         "base_bet": BASE_BET,
         "bet": DOGON_BETS[0],
         "dogon": 0,
-        "status": "pending_publish",
+        "status": "pending_publish",  # Ждет публикации
         "created_at": now_moscow().isoformat(),
         "sent_at": None,
         "closed_at": None,
@@ -278,7 +296,7 @@ def create_prediction(game):
 
     predictions.append(prediction)
     save_predictions()
-    print(f"🔮 СОЗДАН #N{trigger_number} -> Цель: {prediction['target_games']}", flush=True)
+    print(f"🔮 СОЗДАН #N{trigger_number} -> Цель: {target_games} | Публикация на #{publish_game}", flush=True)
     return prediction
 
 # =====================================================================
@@ -342,10 +360,10 @@ def check_predictions():
             
         game_num = target_games[current_dogon]
         
-        # Ищем игру во всех возможных местах, где она может быть
-        game = games_cache.get(game_num) or finalized_games.get(game_num)
+        # ВСЕГДА берем из games_cache (там самые свежие данные)
+        game = games_cache.get(game_num)
         
-        # Если игры нет в кэше, пробуем распарсить её из pending_games
+        # Если нет в кэше, пробуем pending_games
         if not game and game_num in pending_games:
             game = parse_game_message(pending_games[game_num].get("text", ""))
 
@@ -363,7 +381,6 @@ def check_predictions():
                  changed = True
             continue
 
-        # Если игра пришла строкой, парсим её
         if isinstance(game, str):
             game = parse_game_message(game)
 
@@ -411,101 +428,20 @@ def check_predictions():
         save_state()
 
 # =====================================================================
-# ОЖИДАЮЩИЕ ПУБЛИКАЦИИ
+# ОЖИДАЮЩИЕ ПУБЛИКАЦИИ (С ОТЛОЖЕННОЙ ОТПРАВКОЙ)
 # =====================================================================
 
 def resolve_pending_publishes():
+    latest_game = get_latest_game_number()
+
     for p in predictions:
-        if p.get("status") == "pending_publish" and not p.get("message_id"):
+        if p.get("status") != "pending_publish" or p.get("message_id"):
+            continue
+
+        publish_game = p.get("publish_game")
+        if publish_game is None:
+            continue
+
+        # Публикуем, когда текущая игра дошла до publish_game
+        if latest_game >= publish_game:
             send_prediction(p)
-
-# =====================================================================
-# ФИНАЛИЗАЦИЯ ИГР
-# =====================================================================
-
-def finalize_pending_games():
-    current_time = time.time()
-    ready = [
-        num for num, info in pending_games.items()
-        if current_time - info.get("last_update", current_time) >= FINALIZE_WAIT_SECONDS
-    ]
-    for num in ready:
-        info = pending_games.pop(num, None)
-        if not info: continue
-        game = parse_game_message(info.get("text", ""))
-        if game:
-            finalized_games[num] = game
-
-# =====================================================================
-# ПОЛУЧЕНИЕ ИГРОВЫХ СООБЩЕНИЙ
-# =====================================================================
-
-def on_game_message(game_number, text, is_edited):
-    if is_waiting_message(text): return
-
-    game = parse_game_message(text)
-    if not game or not game.get("player_cards"): return
-
-    games_cache[game_number] = game
-    pending_games[game_number] = {
-        "text": text,
-        "last_update": time.time()
-    }
-
-    log_game(game)
-    create_prediction(game)
-
-# =====================================================================
-# ОЧИСТКА КЭША
-# =====================================================================
-
-def cleanup_caches():
-    if len(games_cache) > MAX_GAMES_CACHE:
-        oldest = sorted(games_cache.keys())[:len(games_cache) - MAX_GAMES_CACHE]
-        for num in oldest: del games_cache[num]
-    if len(finalized_games) > MAX_GAMES_CACHE:
-        oldest = sorted(finalized_games.keys())[:len(finalized_games) - MAX_GAMES_CACHE]
-        for num in oldest: del finalized_games[num]
-    if len(predictions) > MAX_PREDICTIONS_STORED:
-        active = [p for p in predictions if p.get("status") in ("pending_check", "pending_publish", "pending")]
-        inactive = [p for p in predictions if p.get("status") not in ("pending_check", "pending_publish", "pending")]
-        keep_count = max(0, MAX_PREDICTIONS_STORED - len(active))
-        predictions[:] = inactive[-keep_count:] + active if keep_count else active
-        save_predictions()
-
-# =====================================================================
-# ОСНОВНОЙ ЦИКЛ
-# =====================================================================
-
-def main():
-    delete_webhook()
-    load_bank()
-    load_predictions()
-    offset = load_offset()
-
-    print("🚀 БОТ ЗАПУЩЕН", flush=True)
-
-    while True:
-        try:
-            if should_cleanup_now(): cleanup_nightly()
-            offset = process_telegram_updates(offset, on_game_message)
-            finalize_pending_games()
-            resolve_pending_publishes()
-            check_predictions()
-            cleanup_caches()
-            time.sleep(POLL_INTERVAL)
-        except Exception as e:
-            print(f"❌ Ошибка основного цикла: {e}", flush=True)
-            time.sleep(3)
-
-# =====================================================================
-# ЗАПУСК
-# =====================================================================
-
-if __name__ == "__main__":
-    import threading
-    threading.Thread(target=main, daemon=True).start()
-    from web_server import start_web_server
-    start_web_server()
-    while True:
-        time.sleep(60)
