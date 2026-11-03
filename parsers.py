@@ -130,7 +130,7 @@ def find_new_trigger(game):
 # =====================================================================
 # РАСЧЕТ ПРОГНОЗА (ЦИКЛИЧНОСТЬ)
 # =====================================================================
-def calculate_prediction(trigger_data):
+def calculate_prediction(trigger_data, game):
     game_num = trigger_data["game_number"]
     last_val = trigger_data["last_card_value"]
     first_rank = trigger_data["first_card_rank"]
@@ -156,6 +156,15 @@ def calculate_prediction(trigger_data):
         predicted_suits = ["♠️", "♣️"]  # Черные (Пики, Крести)
     else:
         predicted_suits = ["♦️", "♥️"]  # Красные (Бубны, Черви)
+
+    # --- НОВОЕ ПРАВИЛО (ЗЕРКАЛО #O и #X) ---
+    # Если в триггерной игре есть очко или ничья, меняем масти на противоположные
+    if game.get("is_ochko") or game.get("is_draw"):
+        if first_suit in BLACK_SUITS:
+            predicted_suits = ["♦️", "♥️"]  # Были черные -> стали красные
+        else:
+            predicted_suits = ["♠️", "♣️"]  # Были красные -> стали черные
+    # ---------------------------------------
 
     return {
         "predicted_rank": first_rank,
