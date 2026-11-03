@@ -171,17 +171,22 @@ def check_prediction_result(game, prediction):
     target_rank = prediction["predicted_rank"]
     target_suits = prediction["predicted_suits"]
 
-    all_cards = game.get("player_cards", []) + game.get("dealer_cards", [])
-    
-    for card in all_cards:
-        if not isinstance(card, dict):
-            continue
-            
+    # Проверяем у игрока
+    for card in game.get("player_cards", []):
+        if not isinstance(card, dict): continue
         r = normalize_rank(card.get("rank"))
         s = normalize_suit(card.get("suit"))
         if r == target_rank and s in target_suits:
-            return card_to_text(card)
-    
+            return {"card": card_to_text(card), "rank": r, "suit": s, "who": "player"}
+
+    # Проверяем у дилера
+    for card in game.get("dealer_cards", []):
+        if not isinstance(card, dict): continue
+        r = normalize_rank(card.get("rank"))
+        s = normalize_suit(card.get("suit"))
+        if r == target_rank and s in target_suits:
+            return {"card": card_to_text(card), "rank": r, "suit": s, "who": "dealer"}
+            
     return None
 
 # =====================================================================
