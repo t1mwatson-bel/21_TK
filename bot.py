@@ -267,23 +267,14 @@ def create_prediction(game):
         trigger_number = int(trigger_number)
     except (ValueError, TypeError): return None
 
-    # 1. Проверка на аномалию в самом триггере
-    if has_anomaly(game):
-        print(f"⛔ #N{trigger_number}: аномалия в триггере, пропуск", flush=True)
-        return None
-
-    # 2. Проверка на аномалию ДО триггера (только завершенную игру!)
+    # Проверка на аномалию ДО триггера (только завершенную игру, без проверки на аномалии)
     before_number = trigger_number - 1
     if before_number < 1: before_number = 1440
     before_game = get_game(before_number)
     
-    # Ждем завершения предыдущей игры, если её еще нет
+    # Ждем завершения предыдущей игры, если её еще нет (это нужно, чтобы не брать сырую игру)
     if not before_game or not before_game.get("is_finished"):
         print(f"⏳ #N{trigger_number}: ждем завершения игры #{before_number}", flush=True)
-        return None
-
-    if has_anomaly(before_game):
-        print(f"⛔ #N{trigger_number}: аномалия ДО триггера, пропуск", flush=True)
         return None
 
     prediction_data = calculate_prediction(trigger)
@@ -322,6 +313,32 @@ def create_prediction(game):
     save_predictions()
     print(f"🔮 СОЗДАН #N{trigger_number} -> Цель: {target_games} | Публикация на #{publish_game}", flush=True)
     return prediction
+
+
+def resolve_pending_publishes():
+    latest_game = get_latest_game_number()
+
+    for p in predictions:
+        if p.get("status") != "pending_publish" or p.get("message_id"):
+            continue
+
+        publish_game = p.get("publish_game")
+        if publish_game is None:
+            continue
+
+        if latest_game >= publish_game:
+            # Ждем завершения игры ПОСЛЕ триггера перед публикацией (без проверки на аномалии)
+            trigger_num = p.get("trigger_number")
+            after_num = trigger_num + 1
+            if after_num > 1440: after_num = 1
+            
+            after_game = finalized_games.get(after_num) or games_cache.get(after_num)
+            
+            # Если игра после триггера еще не завершена — ЖДЕМ
+            if not after_game or not after_game.get("is_finished"):
+                continue
+
+            send_prediction(p)
 
 # =====================================================================
 # ПУБЛИКАЦИЯ ПРОГНОЗА
