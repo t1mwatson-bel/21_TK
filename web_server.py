@@ -73,14 +73,13 @@ def get_result(prediction):
 
     status = str(prediction.get("status", "")).lower().strip()
 
-    if status in ("hit", "win", "won"):
-        return "hit"
+    if status in ("hit", "win", "won", "pending"):
+        return "hit" if status in ("hit", "win", "won") else "pending"
 
     if status in ("miss", "lose", "lost"):
         return "miss"
 
-    # pending / active / waiting / pending_check / cancelled → pending
-    if status in ("pending", "active", "waiting", "pending_check", "cancelled"):
+    if status in ("pending_publish", "cancelled"):
         return "pending"
 
     return "pending"
@@ -98,28 +97,35 @@ def get_dogon(prediction):
 
 
 def get_rank(prediction):
-    """Возвращает ранг прогноза (6-10, J, Q, K, A)."""
     rank = prediction.get("predicted_rank")
     if rank:
         return str(rank)
     return "—"
 
 
-def get_target_offset(prediction):
-    try:
-        return int(prediction.get("target_offset", 0))
-    except Exception:
-        return 0
+def get_prediction_text(prediction):
+    """Формирует красивую строку прогноза (например, A♥️ или A♦️)."""
+    rank = prediction.get("predicted_rank")
+    suits = prediction.get("predicted_suits", [])
+    
+    if not rank or not suits:
+        return "—"
+    
+    # Если масти пришли строками (старый формат), просто склеиваем
+    if isinstance(suits[0], str) and len(suits[0]) == 2:
+        # ["♦️", "♥️"] -> ["A♦️", "A♥️"]
+        suits_text = [f"{rank}{s}" for s in suits]
+    else:
+        suits_text = suits
+
+    return " или ".join(suits_text)
 
 
 def get_cf(prediction):
-    """Возвращает коэффициент (только игрок — 21)."""
-
-    cf_player = prediction.get("cf_player")
-
-    if cf_player:
-        return {"player": float(cf_player)}
-
+    """Коэффициент (если зашло, берем из истории, иначе — None)."""
+    cf = prediction.get("cf")
+    if cf:
+        return {"player": float(cf)}
     return None
 
 
@@ -174,39 +180,30 @@ def group_stats(predictions, key_function):
 
 
 def calculate_streak(predictions):
-
     completed = []
-
     for p in predictions:
         result = get_result(p)
         if result in ("hit", "miss"):
             completed.append(result)
-
     if not completed:
         return {"type": "none", "count": 0}
-
     last = completed[-1]
     count = 0
-
     for result in reversed(completed):
         if result == last:
             count += 1
         else:
             break
-
     return {"type": last, "count": count}
 
 
 def calculate_max_streak(predictions):
-
     max_hit = 0
     max_miss = 0
     current_hit = 0
     current_miss = 0
-
     for p in predictions:
         result = get_result(p)
-
         if result == "hit":
             current_hit += 1
             current_miss = 0
@@ -215,7 +212,6 @@ def calculate_max_streak(predictions):
             current_miss += 1
             current_hit = 0
             max_miss = max(max_miss, current_miss)
-
     return {"hit": max_hit, "miss": max_miss}
 
 
@@ -251,12 +247,10 @@ def api_bank_history():
 def api_stats():
 
     predictions = load_predictions()
-
     overall = calc_stats(predictions)
 
     # Догоны
     dogon_groups = group_stats(predictions, lambda p: get_dogon(p))
-
     dogon_stats = []
     for dogon in range(4):
         data = dogon_groups.get(dogon, {"total": 0, "hits": 0, "misses": 0, "accuracy": 0})
@@ -264,11 +258,9 @@ def api_stats():
 
     # Ранги
     rank_groups = group_stats(predictions, lambda p: get_rank(p))
-
     ranks = []
     for rank, data in rank_groups.items():
         ranks.append({"rank": rank, **data})
-
     ranks.sort(key=lambda x: x["accuracy"], reverse=True)
 
     # Rolling
@@ -295,8 +287,10 @@ def api_stats():
     # График
     chart_predictions = []
     for p in completed_predictions[-100:]:
+        # Для графика берем первую игру из пула или сохраненную result_game
+        game_num = p.get("result_game") or (p.get("target_games", ["—"])[0] if p.get("target_games") else "—")
         chart_predictions.append({
-            "game": p.get("target_number") or p.get("result_game") or p.get("trigger_number") or "—",
+            "game": game_num,
             "result": get_result(p),
             "rank": get_rank(p),
             "dogon": get_dogon(p),
@@ -308,11 +302,11 @@ def api_stats():
         p = predictions[-1]
         latest = {
             "trigger_number": p.get("trigger_number", "—"),
-            "target_number": p.get("target_number", "—"),
+            "target_games": p.get("target_games", []),
+            "prediction_text": get_prediction_text(p),
             "rank": get_rank(p),
             "dogon": get_dogon(p),
             "result": get_result(p),
-            "target_offset": get_target_offset(p),
             "cf": get_cf(p),
         }
 
