@@ -231,7 +231,7 @@ def make_prediction_message(prediction):
     rank = prediction["predicted_rank"]
     suits = prediction["predicted_suits"]
     
-    # Склеиваем ранг и масть для красивого вывода (Q♦️ или Q♥️)
+    # Склеиваем ранг и каждую масть (Q♠️ или Q♣️)
     suits_str = " или ".join([f"{rank}{s}" for s in suits])
     
     bet = prediction.get("bet", BASE_BET)
