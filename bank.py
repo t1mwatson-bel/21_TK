@@ -173,59 +173,59 @@ def apply_dogon_bet(prediction, dogon_index):
 # РЕЗУЛЬТАТ: WIN
 # =====================================================================
 
-def apply_win(prediction, dogon_index, found_card_data):
+def apply_win(prediction, dogon_index, found_cards_data):
     """
     Прогноз выиграл.
-    found_card_data — словарь:
-    {"card": "Q♦️", "rank": "Q", "suit": "♦️", "who": "dealer"}
+    found_cards_data — СПИСОК словарей:
+    [{"card": "Q♦️", "rank": "Q", "suit": "♦️", "who": "dealer"}, ...]
     """
     base_bet = prediction.get("base_bet", bank_state["current_bet"])
     one_bet = bet_for_dogon(base_bet, dogon_index)
     
-    rank = found_card_data["rank"]
-    suit = found_card_data["suit"]
-    who = found_card_data["who"]
+    total_payout = 0
+    total_cf_summary = []
 
-    # Берем правильный коэффициент
-    if who == "player":
-        cf = get_player_cf(rank, suit)
-    else:
-        cf = get_dealer_cf(rank, suit)
+    for card_data in found_cards_data:
+        rank = card_data["rank"]
+        suit = card_data["suit"]
+        who = card_data["who"]
 
-    payout = round(one_bet * cf, 2)
-    bank_state["balance"] = round(bank_state["balance"] + payout, 2)
-    
-    # Сбрасываем текущую ставку после успеха
+        # Берем правильный коэффициент
+        if who == "player":
+            cf = get_player_cf(rank, suit)
+        else:
+            cf = get_dealer_cf(rank, suit)
+
+        payout = round(one_bet * cf, 2)
+        total_payout += payout
+        total_cf_summary.append(f"{card_data['card']}×{cf}")
+
+        # Записываем транзакцию по каждой карте отдельно
+        target_games = prediction.get("target_games", [])
+        game_number = target_games[dogon_index] if dogon_index < len(target_games) else None
+        
+        record = {
+            "type": "win",
+            "game_number": game_number,
+            "rank": rank,
+            "suit": suit,
+            "who": who,
+            "card": card_data["card"],
+            "dogon": dogon_index,
+            "cf": cf,
+            "bet": one_bet,
+            "payout": payout,
+            "balance_after": bank_state["balance"] + total_payout,
+            "at": datetime.now(MOSCOW_TZ).isoformat(),
+        }
+        bank_state["history"].append(record)
+
+    bank_state["balance"] = round(bank_state["balance"] + total_payout, 2)
     bank_state["current_bet"] = START_BET
 
-    target_games = prediction.get("target_games", [])
-    game_number = target_games[dogon_index] if dogon_index < len(target_games) else None
-
-    record = {
-        "type": "win",
-        "game_number": game_number,
-        "rank": rank,
-        "suit": suit,
-        "who": who,
-        "card": found_card_data["card"],
-        "dogon": dogon_index,
-        "cf": cf,
-        "bet": one_bet,
-        "payout": payout,
-        "balance_after": bank_state["balance"],
-        "at": datetime.now(MOSCOW_TZ).isoformat(),
-    }
-
-    bank_state["history"].append(record)
     save_bank()
-
-    print(
-        f"💰 WIN: {found_card_data['card']} ({who}) × {cf} → {payout} ₽ | "
-        f"баланс {bank_state['balance']} ₽",
-        flush=True,
-    )
-
-    return record
+    print(f"💰 WIN: {', '.join(total_cf_summary)} → {total_payout} ₽ | баланс {bank_state['balance']} ₽", flush=True)
+    return True
 
 
 # =====================================================================
