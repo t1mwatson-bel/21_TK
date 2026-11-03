@@ -144,15 +144,15 @@ def calculate_prediction(trigger_data):
             g_num = g_num - NEW_CYCLE
         target_games.append(g_num)
 
-    # 3. Определяем масти прогноза (противоположные, БЕЗ ранга)
+    # 3. Определяем масти прогноза (того же цвета, что и первая карта)
     if first_suit in BLACK_SUITS:
-        predicted_suits = ["♦️", "♥️"]  # Красные
+        predicted_suits = ["♠️", "♣️"]  # Черные (Пики, Крести)
     else:
-        predicted_suits = ["♠️", "♣️"]  # Черные
+        predicted_suits = ["♦️", "♥️"]  # Красные (Бубны, Черви)
 
     return {
         "predicted_rank": first_rank,
-        "predicted_suits": predicted_suits, # Тут только масти (например, ["♦️", "♥️"])
+        "predicted_suits": predicted_suits,
         "target_games": target_games,
         "trigger_info": trigger_data
     }
@@ -167,6 +167,9 @@ def check_prediction_result(game, prediction):
     all_cards = game.get("player_cards", []) + game.get("dealer_cards", [])
     
     for card in all_cards:
+        if not isinstance(card, dict):
+            continue
+            
         r = normalize_rank(card.get("rank"))
         s = normalize_suit(card.get("suit"))
         if r == target_rank and s in target_suits:
