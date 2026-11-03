@@ -79,7 +79,8 @@ def parse_game_message(text):
 
     is_draw = bool(re.search(r"#X\b", text))
     is_ochko = bool(re.search(r"#O\b", text))
-    is_finished = bool(re.search(r"✅", text))
+    # Игра завершена, если есть ✅ ИЛИ 🔰 (ничья) ИЛИ #X (ничья) ИЛИ #O (очко)
+    is_finished = bool(re.search(r"✅|🔰|#X\b|#O\b", text))
     is_r = bool(re.search(r"#R\b", text))
 
     return {
