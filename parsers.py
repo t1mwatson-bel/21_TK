@@ -1,173 +1,72 @@
 import re
-
 from datetime import datetime
-
 from config import (
-    CARD_VALUES,
-    SUITS,
-    SUIT_ALIASES,
-    GAME_CYCLE,
-    MOSCOW_TZ,
+    CARD_VALUES, SUITS, SUIT_ALIASES, MOSCOW_TZ,
+    GAME_CYCLE  # Добавим константу цикла (1440) в config.py
 )
 
+# =====================================================================
+# КОНСТАНТЫ ДЛЯ НОВОГО АЛГОРИТМА
+# =====================================================================
+NEW_CYCLE = 1440  # Цикл игр (1440)
+TRIGGER_RANKS = {"J", "Q", "K", "A"}  # Старшие карты (первая карта игрока)
+RED_SUITS = {"♥️", "♦️"}
+BLACK_SUITS = {"♠️", "♣️"}
+
+CARD_RE = re.compile(r"(10|[2-9AJQKA])(♠|♣|♦|♥)\ufe0f?")
 
 # =====================================================================
-# РЕГУЛЯРКА ДЛЯ КАРТ
+# БАЗОВЫЕ ФУНКЦИИ (без изменений)
 # =====================================================================
-
-CARD_RE = re.compile(
-    r"(10|[2-9AJQKA])"
-    r"(♠|♣|♦|♥)"
-    r"\ufe0f?"
-)
-
-
-# =====================================================================
-# РАНГИ ДЛЯ ТРИГГЕРА
-# =====================================================================
-
-TRIGGER_RANKS = {"J", "Q", "K", "A"}
-
-
-# =====================================================================
-# НОРМАЛИЗАЦИЯ
-# =====================================================================
-
 def normalize_suit(suit):
-    if suit is None:
-        return None
-
+    if suit is None: return None
     value = str(suit).strip()
-
-    if value in SUIT_ALIASES:
-        return SUIT_ALIASES[value]
-
+    if value in SUIT_ALIASES: return SUIT_ALIASES[value]
     value = value.replace("\ufe0f", "")
-
     return SUITS.get(value)
 
-
 def normalize_rank(rank):
-    if rank is None:
-        return None
-
+    if rank is None: return None
     rank = str(rank).strip().upper()
-
-    if rank == "А":
-        rank = "A"
-
-    if rank in {
-        "2", "3", "4", "5",
-        "6", "7", "8", "9",
-        "10", "J", "Q", "K", "A",
-    }:
-        return rank
-
+    if rank == "А": rank = "A"
+    if rank in {"2","3","4","5","6","7","8","9","10","J","Q","K","A"}: return rank
     return None
 
-
-# =====================================================================
-# КАРТЫ → ТЕКСТ
-# =====================================================================
-
 def card_to_text(card):
-    if not card:
-        return ""
-
+    if not card: return ""
     rank = normalize_rank(card.get("rank"))
     suit = normalize_suit(card.get("suit"))
-
-    if not rank or not suit:
-        return ""
-
+    if not rank or not suit: return ""
     return f"{rank}{suit}"
 
-
 def cards_to_text(cards):
-    result = []
-
-    for card in cards:
-        value = card_to_text(card)
-
-        if value:
-            result.append(value)
-
-    return " ".join(result)
-
-
-# =====================================================================
-# СЧЁТ CYBER 21
-# =====================================================================
-
-def cyber21_score(cards):
-    total = 0
-
-    for card in cards:
-        rank = normalize_rank(card.get("rank"))
-
-        if rank in CARD_VALUES:
-            total += CARD_VALUES[rank]
-
-    return total
-
-
-# =====================================================================
-# ПАРСИНГ КАРТ
-# =====================================================================
+    return " ".join(card_to_text(c) for c in cards if card_to_text(c))
 
 def parse_cards(text):
     result = []
-
-    if not text:
-        return result
-
+    if not text: return result
     for match in CARD_RE.finditer(text):
-
         rank = normalize_rank(match.group(1))
         suit = normalize_suit(match.group(2))
-
-        if not rank or not suit:
-            continue
-
-        result.append({
-            "rank": rank,
-            "suit": suit,
-        })
-
+        if rank and suit:
+            result.append({"rank": rank, "suit": suit})
     return result
 
-
-# =====================================================================
-# ПАРСИНГ ИГРЫ
-# =====================================================================
-
 def parse_game_message(text):
-    if not text:
-        return None
-
+    if not text: return None
     number_match = re.search(r"#N(\d+)", text)
-
-    if not number_match:
-        return None
-
+    if not number_match: return None
     game_number = int(number_match.group(1))
-
     groups = re.findall(r"\(([^()]*)\)", text)
+    if len(groups) < 2: return None
+    
+    player_cards = parse_cards(groups[0])
+    dealer_cards = parse_cards(groups[1])
+    if not player_cards: return None
 
-    if len(groups) < 2:
-        return None
-
-    player_text = groups[0]
-    dealer_text = groups[1]
-
-    player_cards = parse_cards(player_text)
-    dealer_cards = parse_cards(dealer_text)
-
-    if not player_cards:
-        return None
-
-    player_score = cyber21_score(player_cards)
-    dealer_score = cyber21_score(dealer_cards)
+    # Счет (оставляем старый, если нужен для логов)
+    player_score = sum(CARD_VALUES.get(normalize_rank(c["rank"]), 0) for c in player_cards)
+    dealer_score = sum(CARD_VALUES.get(normalize_rank(c["rank"]), 0) for c in dealer_cards)
 
     id_match = re.search(r"ID:\s*(\d+)", text)
     game_id = id_match.group(1) if id_match else None
@@ -178,150 +77,117 @@ def parse_game_message(text):
     is_r = bool(re.search(r"#R\b", text))
 
     return {
-        "game_number": game_number,
-        "game_id": game_id,
-
-        "player_cards": player_cards,
-        "dealer_cards": dealer_cards,
-
-        "player_score": player_score,
-        "dealer_score": dealer_score,
-
-        "is_draw": is_draw,
-        "is_ochko": is_ochko,
-        "is_finished": is_finished,
-        "is_r": is_r,
-
-        "raw_text": text,
-
-        "received_at": datetime.now(MOSCOW_TZ).isoformat(),
+        "game_number": game_number, "game_id": game_id,
+        "player_cards": player_cards, "dealer_cards": dealer_cards,
+        "player_score": player_score, "dealer_score": dealer_score,
+        "is_draw": is_draw, "is_ochko": is_ochko, "is_finished": is_finished, "is_r": is_r,
+        "raw_text": text, "received_at": datetime.now(MOSCOW_TZ).isoformat(),
     }
 
-
 # =====================================================================
-# ЛОГ ИГРЫ
+# НОВЫЙ АЛГОРИТМ: ПОИСК ТРИГГЕРА
 # =====================================================================
-
-def log_game(game):
-
+def find_new_trigger(game):
+    """
+    Проверяет игру на соответствие новым условиям триггера.
+    Возвращает словарь с данными для прогноза или None.
+    """
     player = game.get("player_cards", [])
-    dealer = game.get("dealer_cards", [])
+    if not player: return None
 
-    print("", flush=True)
-    print("────────────────────────────────────", flush=True)
-    print(f"🎮 ИГРА #N{game['game_number']}", flush=True)
-    print(
-        f"👤 P: {game['player_score']} "
-        f"({cards_to_text(player)})",
-        flush=True,
-    )
-    print(
-        f"🎰 D: {game['dealer_score']} "
-        f"({cards_to_text(dealer)})",
-        flush=True,
-    )
+    # 1. Первая карта — старшая (J, Q, K, A)
+    first_card = player[0]
+    first_rank = normalize_rank(first_card.get("rank"))
+    if first_rank not in TRIGGER_RANKS: return None
 
-    if game.get("is_draw"):
-        print("🔰 #X — НИЧЬЯ", flush=True)
+    # 2. Нет 10 у игрока
+    if any(normalize_rank(c.get("rank")) == "10" for c in player): return None
 
-    if game.get("is_ochko"):
-        print("⭕ #O — ОЧКО", flush=True)
+    # 3. Последняя карта — цифра (2-9)
+    last_card = player[-1]
+    last_rank = normalize_rank(last_card.get("rank"))
+    if last_rank not in {"2","3","4","5","6","7","8","9"}: return None
 
-    if game.get("is_r"):
-        print("⚠️ #R — АНОМАЛИЯ", flush=True)
+    # 4. Масть первой и последней карты — РАЗНЫЕ
+    first_suit = normalize_suit(first_card.get("suit"))
+    last_suit = normalize_suit(last_card.get("suit"))
+    if first_suit == last_suit: return None
 
-    if game.get("is_finished"):
-        print("✅ — ИГРА ЗАВЕРШЕНА", flush=True)
+    # 5. Нет дублей у игрока (проверяем полное совпадение ранга и масти)
+    cards_set = set()
+    for c in player:
+        r = normalize_rank(c.get("rank"))
+        s = normalize_suit(c.get("suit"))
+        if (r, s) in cards_set: return None
+        cards_set.add((r, s))
 
-    print("────────────────────────────────────", flush=True)
-
-
-# =====================================================================
-# СДВИГ НОМЕРА ИГРЫ
-# =====================================================================
-
-def add_game_offset(number, offset):
-    return ((int(number) - 1 + int(offset)) % GAME_CYCLE) + 1
-
+    # Если всё ок — возвращаем данные для прогноза
+    return {
+        "game_number": game.get("game_number"),
+        "first_card_rank": first_rank,
+        "first_card_suit": first_suit,
+        "last_card_value": int(last_rank),
+        "trigger_card_text": card_to_text(first_card),
+    }
 
 # =====================================================================
-# ПОЛУЧЕНИЕ ПЕРВОЙ КАРТЫ
+# РАСЧЕТ ПРОГНОЗА (ЦИКЛИЧНОСТЬ)
 # =====================================================================
+def calculate_prediction(trigger_data):
+    """
+    Рассчитывает целевые игры и масти для прогноза.
+    """
+    game_num = trigger_data["game_number"]
+    last_val = trigger_data["last_card_value"]
+    first_rank = trigger_data["first_card_rank"]
+    first_suit = trigger_data["first_card_suit"]
 
-def get_first_player_card(game):
-    player = game.get("player_cards", [])
-    if not player:
-        return None
-    return player[0]
+    # 1. Вычисляем целевую игру с учетом цикла 1440
+    target_num = game_num + last_val
+    if target_num > NEW_CYCLE:
+        target_num = target_num - NEW_CYCLE
+        if target_num > NEW_CYCLE: # На случай, если сумма сильно больше (защита)
+            target_num = target_num % NEW_CYCLE
+    
+    # 2. Формируем список целевых игр (4 игры: Д0, Д1, Д2, Д3)
+    # Используем ту же логику цикла для следующих игр
+    target_games = []
+    for i in range(4):
+        g_num = target_num + i
+        if g_num > NEW_CYCLE:
+            g_num = g_num - NEW_CYCLE
+        target_games.append(g_num)
 
-
-def get_first_player_rank(game):
-    card = get_first_player_card(game)
-    if not card:
-        return None
-    return normalize_rank(card.get("rank"))
-
-
-# =====================================================================
-# ТРИГГЕР 21
-# =====================================================================
-
-def find_trigger_21(game):
-    # 1. Игра завершена
-    if not game.get("is_finished"):
-        return None
-
-    # 2. У игрока 3-5 карт
-    player = game.get("player_cards", [])
-
-    if len(player) < 3 or len(player) > 5:
-        return None
-
-    # 3. У дилера 0 карт
-    dealer = game.get("dealer_cards", [])
-
-    if len(dealer) != 0:
-        return None
-
-    # 4. Нет очка
-    if game.get("is_ochko"):
-        return None
-
-    # 5. Первая карта — J/Q/K/A
-    first_rank = get_first_player_rank(game)
-
-    if first_rank not in TRIGGER_RANKS:
-        return None
-
-    first_card = get_first_player_card(game)
+    # 3. Определяем масти прогноза (противоположные)
+    if first_suit in BLACK_SUITS:
+        predicted_suits = ["♦️", "♥️"]  # Красные
+    else:
+        predicted_suits = ["♠️", "♣️"]  # Черные
 
     return {
-        "trigger_card": card_to_text(first_card),
         "predicted_rank": first_rank,
+        "predicted_suits": predicted_suits,
+        "target_games": target_games,
+        "trigger_info": trigger_data
     }
 
-
 # =====================================================================
-# ПОИСК РАНГА У ИГРОКА
+# ПРОВЕРКА РЕЗУЛЬТАТА (зашел ли прогноз)
 # =====================================================================
+def check_prediction_result(game, prediction):
+    """
+    Проверяет, выпала ли нужная карта нужной масти у игрока или дилера.
+    Возвращает найденную карту (текстом) или None.
+    """
+    target_rank = prediction["predicted_rank"]
+    target_suits = prediction["predicted_suits"]
 
-def find_rank_in_player(game, target_rank):
-    if not target_rank:
-        return None
-
-    target_rank = normalize_rank(target_rank)
-
-    if not target_rank:
-        return None
-
-    for card in game.get("player_cards", []):
-
-        rank = normalize_rank(card.get("rank"))
-
-        if rank == target_rank:
-            return {
-                "card": card_to_text(card),
-                "where": "player",
-            }
-
+    all_cards = game.get("player_cards", []) + game.get("dealer_cards", [])
+    
+    for card in all_cards:
+        r = normalize_rank(card.get("rank"))
+        s = normalize_suit(card.get("suit"))
+        if r == target_rank and s in target_suits:
+            return card_to_text(card)
+    
     return None
