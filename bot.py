@@ -61,7 +61,6 @@ BASE_BET = 50.0
 DOGON_BETS = (50, 75, 113, 170)
 MAX_DOGON_INDEX = 3
 
-# За сколько игр до начала пула публикуем прогноз
 PUBLISH_OFFSET_GAMES = 2
 
 # =====================================================================
@@ -201,8 +200,6 @@ def make_prediction_message(prediction):
     suits = prediction["predicted_suits"]
     suits_str = " или ".join([f"{rank}{s}" for s in suits])
     
-    # bet — это теперь общая сумма (4 * one_bet), переданная из bank.py
-    # Но если bank.py еще не вызывался, считаем 4 * 50 = 200
     bet_total = prediction.get("bet", BASE_BET * 4)
     one_bet = bet_total / 4
     
@@ -251,6 +248,10 @@ def create_prediction(game):
     if has_active_prediction():
         return None
 
+    # Бот ищет триггер ТОЛЬКО в завершенной игре (с галочкой ✅)
+    if not game.get("is_finished"):
+        return None
+
     trigger = find_new_trigger(game)
     if not trigger: return None
 
@@ -265,10 +266,16 @@ def create_prediction(game):
         print(f"⛔ #N{trigger_number}: аномалия в триггере, пропуск", flush=True)
         return None
 
-    # 2. Проверка на аномалию ДО триггера
+    # 2. Проверка на аномалию ДО триггера (только завершенную игру!)
     before_number = trigger_number - 1
     if before_number < 1: before_number = 1440
     before_game = get_game(before_number)
+    
+    # Ждем завершения предыдущей игры, если её еще нет
+    if not before_game or not before_game.get("is_finished"):
+        print(f"⏳ #N{trigger_number}: ждем завершения игры #{before_number}", flush=True)
+        return None
+
     if has_anomaly(before_game):
         print(f"⛔ #N{trigger_number}: аномалия ДО триггера, пропуск", flush=True)
         return None
@@ -292,7 +299,7 @@ def create_prediction(game):
         "target_games": target_games,
         "publish_game": publish_game,
         "base_bet": BASE_BET,
-        "bet": BASE_BET * 4, # Общая ставка (4 * 50)
+        "bet": BASE_BET * 4,
         "dogon": 0,
         "status": "pending_publish",
         "created_at": now_moscow().isoformat(),
@@ -346,7 +353,6 @@ def send_prediction(prediction):
     prediction["status"] = "pending"
     prediction["pending_publish"] = False
 
-    # Списываем ставку за первый догон (Д0)
     apply_dogon_bet(prediction, 0)
     
     save_state()
@@ -373,14 +379,12 @@ def check_predictions():
             
         game_num = target_games[current_dogon]
         
-        # Ищем игру в кэше или в pending_games
         game = games_cache.get(game_num)
         if not game and game_num in pending_games:
             game = parse_game_message(pending_games[game_num].get("text", ""))
 
-        print(f"DEBUG CHECK: Прогноз #{p['trigger_number']} | Ждем #{game_num} | Догон Д{current_dogon} | Игра: {'НАЙДЕНА' if game else 'НЕТ'}", flush=True)
-
-        if not game:
+        # Ищем результат ТОЛЬКО в завершенной игре!
+        if not game or not game.get("is_finished"):
             sent_at = parse_datetime(p.get("sent_at"), now)
             if sent_at and now - sent_at > timedelta(minutes=PREDICTION_TIMEOUT_MINUTES):
                  p["status"] = "return"
@@ -396,13 +400,10 @@ def check_predictions():
             game = parse_game_message(game)
 
         if not isinstance(game, dict):
-            print(f"⚠️ Игра #{game_num} не словарь: {type(game)}", flush=True)
             continue
 
         p["result_game"] = game_num
-        found_card_data = check_prediction_result(game, p) # Теперь возвращает словарь!
-
-        print(f"DEBUG CHECK: Игра #{game_num} | P: {game.get('player_cards')} | D: {game.get('dealer_cards')} | Карта: {found_card_data}", flush=True)
+        found_card_data = check_prediction_result(game, p)
 
         if found_card_data:
             p["status"] = "win"
@@ -419,7 +420,6 @@ def check_predictions():
             next_dogon = current_dogon + 1
             apply_lose(p, current_dogon)
             
-            # Списываем новую ставку для следующего догона
             apply_dogon_bet(p, next_dogon)
             
             p["dogon"] = next_dogon
@@ -457,12 +457,18 @@ def resolve_pending_publishes():
             continue
 
         if latest_game >= publish_game:
-            # Дополнительная проверка на аномалию ПОСЛЕ триггера перед отправкой
+            # Ждем завершения игры ПОСЛЕ триггера перед публикацией
             trigger_num = p.get("trigger_number")
             after_num = trigger_num + 1
             if after_num > 1440: after_num = 1
-            after_game = get_game(after_num)
             
+            after_game = finalized_games.get(after_num) or games_cache.get(after_num)
+            
+            # Если игра после триггера еще не завершена — ЖДЕМ
+            if not after_game or not after_game.get("is_finished"):
+                continue
+
+            # Если в игре после триггера есть аномалия — отменяем
             if has_anomaly(after_game):
                 p["status"] = "cancelled"
                 p["closed_at"] = now_moscow().isoformat()
@@ -499,6 +505,7 @@ def on_game_message(game_number, text, is_edited):
     game = parse_game_message(text)
     if not game or not game.get("player_cards"): return
 
+    # Сохраняем в кэш ВСЕ версии игры, чтобы бот видел обновления
     games_cache[game_number] = game
     pending_games[game_number] = {
         "text": text,
