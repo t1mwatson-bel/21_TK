@@ -210,7 +210,7 @@ def make_prediction_message(prediction):
         f"Ставка: {bet_total}₽ (4×{int(one_bet)}₽)"
     )
 
-def make_result_message(prediction, result, found_card_data=None):
+def make_result_message(prediction, result, found_cards_data=None):
     target_games = prediction["target_games"]
     rank = prediction["predicted_rank"]
     suits_str = " или ".join([f"{rank}{s}" for s in prediction["predicted_suits"]])
@@ -218,10 +218,16 @@ def make_result_message(prediction, result, found_card_data=None):
     games_str = format_games_range(target_games)
 
     if result == "win":
-        card_text = found_card_data["card"] if found_card_data else ""
-        who_text = "игрок" if found_card_data and found_card_data.get("who") == "player" else "дилер"
+        # Собираем список карт в строку (например: Q♦️ у игрок, Q♥️ у дилер)
+        if found_cards_data:
+            cards_list = [f"{c['card']} у {'игрока' if c['who'] == 'player' else 'дилера'}" for c in found_cards_data]
+            cards_text = ", ".join(cards_list)
+        else:
+            cards_text = ""
+
         return (
-            f"🎯 Игры: <b>{games_str}</b>: {suits_str} ✅ (карта: {card_text} у {who_text})\n"
+            f"🎯 Игры: <b>{games_str}</b>: {suits_str} ✅\n"
+            f"Карты: {cards_text}\n"
             f"🤑 Баланс: {balance}₽"
         )
     if result == "lose":
@@ -403,16 +409,24 @@ def check_predictions():
             continue
 
         p["result_game"] = game_num
-        found_card_data = check_prediction_result(game, p)
+        
+        # --- ИЗМЕНЕНИЕ ЗДЕСЬ: теперь возвращается СПИСОК карт ---
+        found_cards_data = check_prediction_result(game, p)
 
-        if found_card_data:
+        if found_cards_data:
             p["status"] = "win"
-            p["found_card"] = found_card_data["card"]
+            p["found_card"] = found_cards_data[0]["card"]  # Первая карта для записи
             p["closed_at"] = now.isoformat()
-            apply_win(p, current_dogon, found_card_data)
+            
+            # Начисляем выигрыш за ВСЕ найденные карты
+            apply_win(p, current_dogon, found_cards_data)
+            
             if p.get("message_id"):
-                telegram_edit(p["message_id"], make_result_message(p, "win", found_card_data))
-            print(f"✅ ПРОГНОЗ #{p['trigger_number']} ЗАШЕЛ в игре #{game_num}! Карта: {found_card_data['card']}", flush=True)
+                telegram_edit(p["message_id"], make_result_message(p, "win", found_cards_data))
+            
+            # Логируем все карты
+            cards_log = ", ".join([f"{c['card']} ({'игрок' if c['who']=='player' else 'дилер'})" for c in found_cards_data])
+            print(f"✅ ПРОГНОЗ #{p['trigger_number']} ЗАШЕЛ в игре #{game_num}! Карты: {cards_log}", flush=True)
             changed = True
             continue
 
