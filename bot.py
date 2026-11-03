@@ -424,6 +424,12 @@ def check_predictions():
                  changed = True
             continue
 
+        # --- ЗАЩИТА ОТ ОШИБКИ 'str' object has no attribute 'get' ---
+        if not isinstance(game, dict):
+            print(f"⚠️ ОШИБКА: Игра {game_num} в кэше не словарь, а {type(game)}. Данные: {game}", flush=True)
+            continue
+        # -----------------------------------------------------------
+
         p["result_game"] = game_num
         found_card = check_prediction_result(game, p)
 
