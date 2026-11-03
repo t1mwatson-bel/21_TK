@@ -2,7 +2,7 @@ import re
 from datetime import datetime
 from config import (
     CARD_VALUES, SUITS, SUIT_ALIASES, MOSCOW_TZ,
-    GAME_CYCLE  # Добавим константу цикла (1440) в config.py
+    GAME_CYCLE
 )
 
 # =====================================================================
@@ -16,7 +16,7 @@ BLACK_SUITS = {"♠️", "♣️"}
 CARD_RE = re.compile(r"(10|[2-9AJQKA])(♠|♣|♦|♥)\ufe0f?")
 
 # =====================================================================
-# БАЗОВЫЕ ФУНКЦИИ (без изменений)
+# БАЗОВЫЕ ФУНКЦИИ
 # =====================================================================
 def normalize_suit(suit):
     if suit is None: return None
@@ -64,7 +64,6 @@ def parse_game_message(text):
     dealer_cards = parse_cards(groups[1])
     if not player_cards: return None
 
-    # Счет (оставляем старый, если нужен для логов)
     player_score = sum(CARD_VALUES.get(normalize_rank(c["rank"]), 0) for c in player_cards)
     dealer_score = sum(CARD_VALUES.get(normalize_rank(c["rank"]), 0) for c in dealer_cards)
 
@@ -88,10 +87,6 @@ def parse_game_message(text):
 # НОВЫЙ АЛГОРИТМ: ПОИСК ТРИГГЕРА
 # =====================================================================
 def find_new_trigger(game):
-    """
-    Проверяет игру на соответствие новым условиям триггера.
-    Возвращает словарь с данными для прогноза или None.
-    """
     player = game.get("player_cards", [])
     if not player: return None
 
@@ -113,15 +108,10 @@ def find_new_trigger(game):
     last_suit = normalize_suit(last_card.get("suit"))
     if first_suit == last_suit: return None
 
-    # 5. Нет дублей у игрока (проверяем полное совпадение ранга и масти)
-    cards_set = set()
-    for c in player:
-        r = normalize_rank(c.get("rank"))
-        s = normalize_suit(c.get("suit"))
-        if (r, s) in cards_set: return None
-        cards_set.add((r, s))
+    # 5. Нет дублей у игрока (проверяем совпадение РАНГОВ)
+    ranks = [normalize_rank(c.get("rank")) for c in player]
+    if len(ranks) != len(set(ranks)): return None
 
-    # Если всё ок — возвращаем данные для прогноза
     return {
         "game_number": game.get("game_number"),
         "first_card_rank": first_rank,
@@ -134,9 +124,6 @@ def find_new_trigger(game):
 # РАСЧЕТ ПРОГНОЗА (ЦИКЛИЧНОСТЬ)
 # =====================================================================
 def calculate_prediction(trigger_data):
-    """
-    Рассчитывает целевые игры и масти для прогноза.
-    """
     game_num = trigger_data["game_number"]
     last_val = trigger_data["last_card_value"]
     first_rank = trigger_data["first_card_rank"]
@@ -146,11 +133,10 @@ def calculate_prediction(trigger_data):
     target_num = game_num + last_val
     if target_num > NEW_CYCLE:
         target_num = target_num - NEW_CYCLE
-        if target_num > NEW_CYCLE: # На случай, если сумма сильно больше (защита)
+        if target_num > NEW_CYCLE: 
             target_num = target_num % NEW_CYCLE
     
-    # 2. Формируем список целевых игр (4 игры: Д0, Д1, Д2, Д3)
-    # Используем ту же логику цикла для следующих игр
+    # 2. Формируем список целевых игр (4 игры)
     target_games = []
     for i in range(4):
         g_num = target_num + i
@@ -158,16 +144,15 @@ def calculate_prediction(trigger_data):
             g_num = g_num - NEW_CYCLE
         target_games.append(g_num)
 
-    # 3. Определяем масти прогноза (противоположные)
-    # 3. Определяем масти прогноза (противоположные)
+    # 3. Определяем масти прогноза (противоположные, БЕЗ ранга)
     if first_suit in BLACK_SUITS:
-        predicted_suits = [f"{first_rank}♦️", f"{first_rank}♥️"]  # Красные
+        predicted_suits = ["♦️", "♥️"]  # Красные
     else:
-        predicted_suits = [f"{first_rank}♠️", f"{first_rank}♣️"]  # Черные
+        predicted_suits = ["♠️", "♣️"]  # Черные
 
     return {
         "predicted_rank": first_rank,
-        "predicted_suits": predicted_suits,
+        "predicted_suits": predicted_suits, # Тут только масти (например, ["♦️", "♥️"])
         "target_games": target_games,
         "trigger_info": trigger_data
     }
@@ -176,10 +161,6 @@ def calculate_prediction(trigger_data):
 # ПРОВЕРКА РЕЗУЛЬТАТА (зашел ли прогноз)
 # =====================================================================
 def check_prediction_result(game, prediction):
-    """
-    Проверяет, выпала ли нужная карта нужной масти у игрока или дилера.
-    Возвращает найденную карту (текстом) или None.
-    """
     target_rank = prediction["predicted_rank"]
     target_suits = prediction["predicted_suits"]
 
@@ -192,8 +173,8 @@ def check_prediction_result(game, prediction):
             return card_to_text(card)
     
     return None
-    
-    # =====================================================================
+
+# =====================================================================
 # ЛОГ ИГРЫ (ДЛЯ КОНСОЛИ)
 # =====================================================================
 def log_game(game):
