@@ -445,3 +445,94 @@ def resolve_pending_publishes():
         # Публикуем, когда текущая игра дошла до publish_game
         if latest_game >= publish_game:
             send_prediction(p)
+
+# =====================================================================
+# ФИНАЛИЗАЦИЯ ИГР
+# =====================================================================
+
+def finalize_pending_games():
+    current_time = time.time()
+    ready = [
+        num for num, info in pending_games.items()
+        if current_time - info.get("last_update", current_time) >= FINALIZE_WAIT_SECONDS
+    ]
+    for num in ready:
+        info = pending_games.pop(num, None)
+        if not info: continue
+        game = parse_game_message(info.get("text", ""))
+        if game:
+            finalized_games[num] = game
+
+# =====================================================================
+# ПОЛУЧЕНИЕ ИГРОВЫХ СООБЩЕНИЙ
+# =====================================================================
+
+def on_game_message(game_number, text, is_edited):
+    if is_waiting_message(text): return
+
+    game = parse_game_message(text)
+    if not game or not game.get("player_cards"): return
+
+    games_cache[game_number] = game
+    pending_games[game_number] = {
+        "text": text,
+        "last_update": time.time()
+    }
+
+    log_game(game)
+    create_prediction(game)
+
+# =====================================================================
+# ОЧИСТКА КЭША
+# =====================================================================
+
+def cleanup_caches():
+    if len(games_cache) > MAX_GAMES_CACHE:
+        oldest = sorted(games_cache.keys())[:len(games_cache) - MAX_GAMES_CACHE]
+        for num in oldest: del games_cache[num]
+    if len(finalized_games) > MAX_GAMES_CACHE:
+        oldest = sorted(finalized_games.keys())[:len(finalized_games) - MAX_GAMES_CACHE]
+        for num in oldest: del finalized_games[num]
+    if len(predictions) > MAX_PREDICTIONS_STORED:
+        active = [p for p in predictions if p.get("status") in ("pending_check", "pending_publish", "pending")]
+        inactive = [p for p in predictions if p.get("status") not in ("pending_check", "pending_publish", "pending")]
+        keep_count = max(0, MAX_PREDICTIONS_STORED - len(active))
+        predictions[:] = inactive[-keep_count:] + active if keep_count else active
+        save_predictions()
+
+# =====================================================================
+# ОСНОВНОЙ ЦИКЛ
+# =====================================================================
+
+def main():
+    delete_webhook()
+    load_bank()
+    load_predictions()
+    offset = load_offset()
+
+    print("🚀 БОТ ЗАПУЩЕН", flush=True)
+
+    while True:
+        try:
+            if should_cleanup_now(): cleanup_nightly()
+            offset = process_telegram_updates(offset, on_game_message)
+            finalize_pending_games()
+            resolve_pending_publishes()
+            check_predictions()
+            cleanup_caches()
+            time.sleep(POLL_INTERVAL)
+        except Exception as e:
+            print(f"❌ Ошибка основного цикла: {e}", flush=True)
+            time.sleep(3)
+
+# =====================================================================
+# ЗАПУСК
+# =====================================================================
+
+if __name__ == "__main__":
+    import threading
+    threading.Thread(target=main, daemon=True).start()
+    from web_server import start_web_server
+    start_web_server()
+    while True:
+        time.sleep(60)
