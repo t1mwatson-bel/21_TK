@@ -159,10 +159,11 @@ def calculate_prediction(trigger_data):
         target_games.append(g_num)
 
     # 3. Определяем масти прогноза (противоположные)
+    # 3. Определяем масти прогноза (противоположные)
     if first_suit in BLACK_SUITS:
-        predicted_suits = ["♦️", "♥️"]  # Красные
+        predicted_suits = [f"{first_rank}♦️", f"{first_rank}♥️"]  # Красные
     else:
-        predicted_suits = ["♠️", "♣️"]  # Черные
+        predicted_suits = [f"{first_rank}♠️", f"{first_rank}♣️"]  # Черные
 
     return {
         "predicted_rank": first_rank,
