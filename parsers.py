@@ -21,8 +21,15 @@ CARD_RE = re.compile(r"(10|[2-9AJQKA])(♠|♣|♦|♥)\ufe0f?")
 def normalize_suit(suit):
     if suit is None: return None
     value = str(suit).strip()
-    if value in SUIT_ALIASES: return SUIT_ALIASES[value]
+    
+    # Убираем вариационный селектор (ufe0f), если он есть
     value = value.replace("\ufe0f", "")
+    
+    # Проверяем в алиасах (там есть и с селектором, и без)
+    if value in SUIT_ALIASES: 
+        return SUIT_ALIASES[value]
+    
+    # Если не нашли — пробуем через SUITS
     return SUITS.get(value)
 
 def normalize_rank(rank):
