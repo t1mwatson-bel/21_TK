@@ -57,7 +57,8 @@ PREDICTION_TIMEOUT_MINUTES = 20
 PENDING_CHECK_TIMEOUT_MINUTES = 5
 
 # Цикл игр (используется для сдвига номера)
-GAME_CYCLE = 720
+# Старое значение GAME_CYCLE = 720 ЗАМЕНИТЬ НА:
+GAME_CYCLE = 1440
 
 
 # =====================================================================
