@@ -15,17 +15,12 @@ from coefs import get_player_cf, get_dealer_cf
 
 
 # =====================================================================
-# КОНСТАНТЫ ЛОГИКИ СТАВОК
+# КОНСТАНТЫ ЛОГИКИ СТАВОК (ЭХО)
 # =====================================================================
 
-# 4 догона: Д0, Д1, Д2, Д3 (под новую логику)
 DOGONS_PER_CYCLE = 4
-
-# Коэффициент догона: ×1.5
-DOGON_MULTIPLIER = 1.5
-
-# Количество ставок на один догон (2 масти * 2 места)
-BETS_PER_PREDICTION = 4
+DOGON_BETS = (50, 75, 100, 125)  # Фиксированные ставки
+BETS_PER_PREDICTION = 2  # 2 ставки (на 2 масти)
 
 
 # =====================================================================
@@ -101,28 +96,10 @@ def get_current_bet():
 
 
 # =====================================================================
-# ЛОГИКА СТАВОК
-# =====================================================================
-
-def next_dogon_bet(current_bet):
-    """Следующая ставка догона: ×1.5, округление вверх."""
-    return int(math.ceil(float(current_bet) * DOGON_MULTIPLIER))
-
-
-def bet_for_dogon(base_bet, dogon_index):
-    """Сумма ОДНОЙ ставки (на одну масть, одно место) для конкретного догона."""
-    bet = int(round(float(base_bet)))
-    for _ in range(int(dogon_index)):
-        bet = next_dogon_bet(bet)
-    return bet
-
-
-# =====================================================================
-# СПИСАНИЕ СТАВОК (4 ШТУКИ)
+# СПИСАНИЕ СТАВОК (2 ШТУКИ)
 # =====================================================================
 
 def apply_dogon_bet(prediction, dogon_index):
-    base_bet = prediction.get("base_bet", bank_state["current_bet"])
     # Берем фиксированную ставку из DOGON_BETS (50, 75, 100, 125)
     one_bet = DOGON_BETS[dogon_index] if dogon_index < len(DOGON_BETS) else 125
     
@@ -157,6 +134,10 @@ def apply_dogon_bet(prediction, dogon_index):
     return True
 
 
+# =====================================================================
+# РЕЗУЛЬТАТ: WIN
+# =====================================================================
+
 def apply_win(prediction, dogon_index, found_cards_data):
     one_bet = DOGON_BETS[dogon_index] if dogon_index < len(DOGON_BETS) else 125
     total_payout = 0
@@ -174,7 +155,6 @@ def apply_win(prediction, dogon_index, found_cards_data):
         payout = round(one_bet * cf, 2)
         total_payout += payout
         
-        # Запись в историю
         target_games = prediction.get("target_games", [])
         game_number = target_games[dogon_index] if dogon_index < len(target_games) else None
         
@@ -209,16 +189,18 @@ def apply_win(prediction, dogon_index, found_cards_data):
 def apply_lose(prediction, dogon_index):
     """
     Прогноз не зашёл на догоне dogon_index.
-    ВАЖНО: НЕ списывает следующую ставку (это делает bot.py).
+    ВАЖНО: НЕ списывает следующую ставку (это делает bot.py через apply_dogon_bet).
     """
     target_games = prediction.get("target_games", [])
     game_number = target_games[dogon_index] if dogon_index < len(target_games) else None
+    target_who = prediction.get("target_who", "both")
 
     if dogon_index < DOGONS_PER_CYCLE - 1:
         record = {
             "type": "lose",
             "game_number": game_number,
             "rank": prediction.get("predicted_rank"),
+            "who": target_who,
             "dogon": dogon_index,
             "balance_after": bank_state["balance"],
             "at": datetime.now(MOSCOW_TZ).isoformat(),
@@ -230,6 +212,7 @@ def apply_lose(prediction, dogon_index):
             "type": "lose",
             "game_number": game_number,
             "rank": prediction.get("predicted_rank"),
+            "who": target_who,
             "dogon": dogon_index,
             "cycle_lost": True,
             "next_base": START_BET,
