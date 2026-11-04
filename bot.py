@@ -58,8 +58,8 @@ from bank import (
 FINALIZE_WAIT_SECONDS = 30
 PREDICTION_TIMEOUT_MINUTES = 300
 BASE_BET = 50.0
-DOGON_BETS = (50, 75, 100, 125) # Фиксированные ставки
-MAX_DOGON_INDEX = 3
+DOGON_BETS = (50, 75, 100, 125, 150)
+MAX_DOGON_INDEX = 4
 
 PUBLISH_OFFSET_GAMES = 2
 
@@ -205,7 +205,6 @@ def make_prediction_message(prediction):
     
     games_str = format_games_range(target_games)
     
-    # Проверяем, на кого прогноз (игрок или дилер)
     target_who = prediction.get("target_who", "both")
     who_text = ""
     if target_who == "player":
@@ -287,6 +286,7 @@ def create_prediction(game):
         "target_games": target_games,
         "publish_game": None,
         "target_who": None,
+        "has_anomaly_in_pool": False, # <--- ДОБАВЛЕНО
         
         "base_bet": BASE_BET,
         "bet": 0,
@@ -328,27 +328,22 @@ def check_silent_predictions():
             if not game or not game.get("is_finished"):
                 continue
 
-            # Ищем карту у игрока и дилера
             found_cards = check_prediction_result(game, p)
             
-            # Анализируем, у кого выпало
             who_found = set()
             for card_data in found_cards:
                 who_found.add(card_data["who"])
 
             if len(who_found) == 2:
-                # Выпало у обоих — пропуск
                 p["status"] = "skipped"
                 p["closed_at"] = now.isoformat()
                 print(f"⏭️ ТИХИЙ #{p['trigger_number']} ПРОПУЩЕН (выпало у обоих в #{game_num})", flush=True)
                 changed = True
                 break
             elif len(who_found) == 1:
-                # Выпало у одного — создаем Эхо
                 target_who = list(who_found)[0]
                 p["target_who"] = target_who
                 
-                # Новый пул = первая игра старого пула + 10
                 first_game = target_games[0]
                 echo_first = first_game + 10
                 if echo_first > 1440:
@@ -361,7 +356,6 @@ def check_silent_predictions():
                         g_num = g_num - 1440
                     echo_games.append(g_num)
                 
-                # Публикация за 2 игры до Д0
                 publish_game = echo_games[0] - PUBLISH_OFFSET_GAMES
                 if publish_game < 1:
                     publish_game = 1440 + publish_game
@@ -369,13 +363,12 @@ def check_silent_predictions():
                 p["target_games"] = echo_games
                 p["publish_game"] = publish_game
                 p["status"] = "pending_publish"
-                p["bet"] = BASE_BET * 2 # 2 ставки (на 2 масти)
+                p["bet"] = BASE_BET * 2
                 
                 print(f"🔄 СОЗДАНО ЭХО #{p['trigger_number']} на {target_who} -> Цель: {echo_games} | Публикация на #{publish_game}", flush=True)
                 changed = True
                 break
 
-        # Если ни одна игра не подошла (все 4 прошли, а карты не было)
         if p.get("status") == "pending_silent":
             last_game_num = target_games[-1]
             last_game = games_cache.get(last_game_num)
@@ -473,6 +466,10 @@ def check_predictions():
             continue
 
         p["result_game"] = game_num
+        
+        if game.get("is_ochko") or game.get("is_draw"):
+            p["has_anomaly_in_pool"] = True
+
         found_cards_data = check_prediction_result(game, p)
 
         if found_cards_data:
@@ -491,9 +488,30 @@ def check_predictions():
             continue
 
         if current_dogon < MAX_DOGON_INDEX:
+            if current_dogon == 3 and p.get("has_anomaly_in_pool"):
+                print(f"⚠️ D{current_dogon}: аномалия в пуле, добавляем D4", flush=True)
+                next_dogon = 4
+                apply_lose(p, current_dogon)
+                apply_dogon_bet(p, next_dogon)
+                
+                last_game = target_games[-1]
+                new_game = last_game + 1
+                if new_game > 1440:
+                    new_game = 1
+                target_games.append(new_game)
+                
+                p["dogon"] = next_dogon
+                p["bet"] = DOGON_BETS[next_dogon] * 2
+                p["sent_at"] = now.isoformat()
+                
+                if p.get("message_id"):
+                    telegram_edit(p["message_id"], make_prediction_message(p))
+                print(f"❌ D{current_dogon} проиграл (аномалия), переходим на D{next_dogon} (игра #{new_game})", flush=True)
+                changed = True
+                continue
+            
             next_dogon = current_dogon + 1
             apply_lose(p, current_dogon)
-            
             apply_dogon_bet(p, next_dogon)
             
             p["dogon"] = next_dogon
@@ -509,7 +527,7 @@ def check_predictions():
         p["closed_at"] = now.isoformat()
         if p.get("message_id"):
             telegram_edit(p["message_id"], make_result_message(p, "lose"))
-        print(f"❌ ПРОГНОЗ #{p['trigger_number']} ПРОИГРАН (все догоны D0-D3)", flush=True)
+        print(f"❌ ПРОГНОЗ #{p['trigger_number']} ПРОИГРАН (все догоны)", flush=True)
         changed = True
 
     if changed:
@@ -605,7 +623,6 @@ def main():
             offset = process_telegram_updates(offset, on_game_message)
             finalize_pending_games()
             
-            # Проверяем тихие прогнозы и создаем эхо
             check_silent_predictions()
             
             resolve_pending_publishes()
