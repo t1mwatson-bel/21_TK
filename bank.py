@@ -18,8 +18,8 @@ from coefs import get_player_cf, get_dealer_cf
 # КОНСТАНТЫ ЛОГИКИ СТАВОК (ЭХО)
 # =====================================================================
 
-DOGONS_PER_CYCLE = 4
-DOGON_BETS = (50, 75, 100, 125)  # Фиксированные ставки
+DOGONS_PER_CYCLE = 5
+DOGON_BETS = (50, 75, 100, 125, 150)  # Добавили Д4 = 150
 BETS_PER_PREDICTION = 2  # 2 ставки (на 2 масти)
 
 
