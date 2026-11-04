@@ -499,13 +499,7 @@ def resolve_pending_publishes():
             if not after_game or not after_game.get("is_finished"):
                 continue
 
-            # Если в игре после триггера есть аномалия — отменяем
-            if has_anomaly(after_game):
-                p["status"] = "cancelled"
-                p["closed_at"] = now_moscow().isoformat()
-                print(f"⛔ ПРОГНОЗ #{trigger_num} ОТМЕНЕН: аномалия в игре #{after_num}", flush=True)
-                save_predictions()
-                continue
+            # (Блок с проверкой has_anomaly(after_game) и отменой прогноза УДАЛЕН)
 
             send_prediction(p)
 
