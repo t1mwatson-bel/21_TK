@@ -274,7 +274,7 @@ def create_prediction(game):
         trigger_number = int(trigger_number)
     except (ValueError, TypeError): return None
 
-    prediction_data = calculate_prediction(trigger)
+    prediction_data = calculate_prediction(trigger, game)
     target_games = prediction_data["target_games"]
 
     prediction = {
