@@ -19,8 +19,8 @@ from coefs import get_player_cf, get_dealer_cf
 # =====================================================================
 
 DOGONS_PER_CYCLE = 5
-DOGON_BETS = (50, 75, 100, 125, 150)  # Добавили Д4 = 150
-BETS_PER_PREDICTION = 2  # 2 ставки (на 2 масти)
+DOGON_BETS = (50, 75, 100, 125, 150)  # Фиксированные ставки (Д0-Д4)
+BETS_PER_PREDICTION = 4  # <--- ВОЗВРАЩАЕМ 4 СТАВКИ (2 масти × 2 места)
 
 
 # =====================================================================
@@ -96,15 +96,15 @@ def get_current_bet():
 
 
 # =====================================================================
-# СПИСАНИЕ СТАВОК (2 ШТУКИ)
+# СПИСАНИЕ СТАВОК (4 ШТУКИ)
 # =====================================================================
 
 def apply_dogon_bet(prediction, dogon_index):
-    # Берем фиксированную ставку из DOGON_BETS (50, 75, 100, 125)
-    one_bet = DOGON_BETS[dogon_index] if dogon_index < len(DOGON_BETS) else 125
+    # Берем фиксированную ставку из DOGON_BETS
+    one_bet = DOGON_BETS[dogon_index] if dogon_index < len(DOGON_BETS) else 150
     
-    # В Эхо 2 ставки (на 2 масти для одного человека)
-    total_bet = one_bet * 2
+    # 4 ставки (2 масти для игрока + 2 масти для дилера)
+    total_bet = one_bet * BETS_PER_PREDICTION
     prediction["bet"] = total_bet
 
     bank_state["balance"] = round(bank_state["balance"] - total_bet, 2)
@@ -113,24 +113,25 @@ def apply_dogon_bet(prediction, dogon_index):
     game_number = target_games[dogon_index] if dogon_index < len(target_games) else None
     rank = prediction.get("predicted_rank")
     suits = prediction.get("predicted_suits", ["♠️", "♣️"])
-    target_who = prediction.get("target_who", "both")
 
+    # Пишем 4 транзакции в историю
     for suit in suits:
-        record = {
-            "type": "bet",
-            "game_number": game_number,
-            "rank": rank,
-            "suit": suit,
-            "who": target_who,
-            "dogon": dogon_index,
-            "amount": one_bet,
-            "balance_after": bank_state["balance"],
-            "at": datetime.now(MOSCOW_TZ).isoformat(),
-        }
-        bank_state["history"].append(record)
+        for who in ["player", "dealer"]:
+            record = {
+                "type": "bet",
+                "game_number": game_number,
+                "rank": rank,
+                "suit": suit,
+                "who": who,
+                "dogon": dogon_index,
+                "amount": one_bet,
+                "balance_after": bank_state["balance"],
+                "at": datetime.now(MOSCOW_TZ).isoformat(),
+            }
+            bank_state["history"].append(record)
 
     save_bank()
-    print(f"💸 BET Д{dogon_index}: списано {total_bet} ₽ (2×{one_bet}) | баланс {bank_state['balance']} ₽", flush=True)
+    print(f"💸 BET Д{dogon_index}: списано {total_bet} ₽ (4×{one_bet}) | баланс {bank_state['balance']} ₽", flush=True)
     return True
 
 
@@ -139,7 +140,7 @@ def apply_dogon_bet(prediction, dogon_index):
 # =====================================================================
 
 def apply_win(prediction, dogon_index, found_cards_data):
-    one_bet = DOGON_BETS[dogon_index] if dogon_index < len(DOGON_BETS) else 125
+    one_bet = DOGON_BETS[dogon_index] if dogon_index < len(DOGON_BETS) else 150
     total_payout = 0
 
     for card_data in found_cards_data:
@@ -187,32 +188,24 @@ def apply_win(prediction, dogon_index, found_cards_data):
 # =====================================================================
 
 def apply_lose(prediction, dogon_index):
-    """
-    Прогноз не зашёл на догоне dogon_index.
-    ВАЖНО: НЕ списывает следующую ставку (это делает bot.py через apply_dogon_bet).
-    """
     target_games = prediction.get("target_games", [])
     game_number = target_games[dogon_index] if dogon_index < len(target_games) else None
-    target_who = prediction.get("target_who", "both")
 
     if dogon_index < DOGONS_PER_CYCLE - 1:
         record = {
             "type": "lose",
             "game_number": game_number,
             "rank": prediction.get("predicted_rank"),
-            "who": target_who,
             "dogon": dogon_index,
             "balance_after": bank_state["balance"],
             "at": datetime.now(MOSCOW_TZ).isoformat(),
         }
     else:
-        # Все догоны проиграны — база сбрасывается
         bank_state["current_bet"] = START_BET
         record = {
             "type": "lose",
             "game_number": game_number,
             "rank": prediction.get("predicted_rank"),
-            "who": target_who,
             "dogon": dogon_index,
             "cycle_lost": True,
             "next_base": START_BET,
@@ -223,12 +216,7 @@ def apply_lose(prediction, dogon_index):
     bank_state["history"].append(record)
     save_bank()
 
-    print(
-        f"❌ LOSE Д{dogon_index} | "
-        f"баланс {bank_state['balance']} ₽",
-        flush=True,
-    )
-
+    print(f"❌ LOSE Д{dogon_index} | баланс {bank_state['balance']} ₽", flush=True)
     return record
 
 
@@ -238,7 +226,6 @@ def apply_lose(prediction, dogon_index):
 
 def apply_return(prediction, bet_amount=None):
     bank_state["current_bet"] = START_BET
-
     target_games = prediction.get("target_games", [])
     game_number = target_games[0] if target_games else None
 
@@ -252,13 +239,7 @@ def apply_return(prediction, bet_amount=None):
 
     bank_state["history"].append(record)
     save_bank()
-
-    print(
-        f"♻️ ВОЗВРАТ | "
-        f"баланс {bank_state['balance']} ₽",
-        flush=True,
-    )
-
+    print(f"♻️ ВОЗВРАТ | баланс {bank_state['balance']} ₽", flush=True)
     return record
 
 
