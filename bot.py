@@ -205,10 +205,12 @@ def make_prediction_message(prediction):
     
     games_str = format_games_range(target_games)
 
+    # Добавляем пометку про #O и #X
     return (
         f"🎯 Игры: <b>{games_str}</b>\n"
         f"Ждем: <b>{suits_str}</b>\n"
-        f"Ставка: {bet_total}₽ (4×{int(one_bet)}₽)"
+        f"Ставка: {bet_total}₽ (4×{int(one_bet)}₽)\n"
+        f"⚠️ При #O и #X +1 догон"
     )
     
 def make_result_message(prediction, result, found_cards_data=None):
