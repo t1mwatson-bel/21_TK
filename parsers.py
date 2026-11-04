@@ -129,7 +129,7 @@ def find_new_trigger(game):
     }
 
 # =====================================================================
-# РАСЧЕТ ПРОГНОЗА (ЦИКЛИЧНОСТЬ)
+# РАСЧЕТ ПРОГНОЗА (ЦИКЛИЧНОСТЬ + ЧЕТНОСТЬ ДНЯ)
 # =====================================================================
 def calculate_prediction(trigger_data, game):
     game_num = trigger_data["game_number"]
@@ -152,20 +152,25 @@ def calculate_prediction(trigger_data, game):
             g_num = g_num - NEW_CYCLE
         target_games.append(g_num)
 
-    # 3. Определяем масти прогноза (того же цвета, что и первая карта)
+    # 3. Определяем базовые масти (того же цвета, что и первая карта)
     if first_suit in BLACK_SUITS:
-        predicted_suits = ["♠️", "♣️"]  # Черные (Пики, Крести)
+        base_suits = ["♠️", "♣️"]  # Черные (Пики, Крести)
     else:
-        predicted_suits = ["♦️", "♥️"]  # Красные (Бубны, Черви)
+        base_suits = ["♦️", "♥️"]  # Красные (Бубны, Черви)
 
-    # --- НОВОЕ ПРАВИЛО (ЗЕРКАЛО #O и #X) ---
-    # Если в триггерной игре есть очко или ничья, меняем масти на противоположные
-    if game.get("is_ochko") or game.get("is_draw"):
+    # 4. Проверяем четность дня (по Москве)
+    from datetime import datetime
+    game_time = datetime.fromisoformat(game["received_at"])
+    is_even_day = (game_time.day % 2 == 0)
+    
+    # 5. Инвертируем масти ТОЛЬКО если день ЧЕТНЫЙ
+    if is_even_day:
         if first_suit in BLACK_SUITS:
-            predicted_suits = ["♦️", "♥️"]  # Были черные -> стали красные
+            predicted_suits = ["♦️", "♥️"]  # Черные -> Красные
         else:
-            predicted_suits = ["♠️", "♣️"]  # Были красные -> стали черные
-    # ---------------------------------------
+            predicted_suits = ["♠️", "♣️"]  # Красные -> Черные
+    else:
+        predicted_suits = base_suits
 
     return {
         "predicted_rank": first_rank,
