@@ -394,6 +394,20 @@ def check_predictions():
         if p.get("status") != "pending":
             continue
 
+        # --- ЗАЩИТА ОТ ЗАВИСАНИЯ (20 минут) ---
+        # Отсчитываем от последнего действия (отправки или начала догона)
+        sent_at = parse_datetime(p.get("sent_at"), now)
+        if sent_at and now - sent_at > timedelta(minutes=20):
+            p["status"] = "return"
+            p["closed_at"] = now.isoformat()
+            apply_return(p, p.get("bet", 0))
+            if p.get("message_id"):
+                telegram_edit(p["message_id"], make_result_message(p, "return"))
+            print(f"♻️ Возврат #{p['trigger_number']}: завис в pending > 20 минут (игра не пришла)", flush=True)
+            changed = True
+            continue
+        # ------------------------------------
+
         target_games = p.get("target_games", [])
         current_dogon = int(p.get("dogon", 0))
         
@@ -408,15 +422,6 @@ def check_predictions():
 
         # Ищем результат ТОЛЬКО в завершенной игре!
         if not game or not game.get("is_finished"):
-            sent_at = parse_datetime(p.get("sent_at"), now)
-            if sent_at and now - sent_at > timedelta(minutes=PREDICTION_TIMEOUT_MINUTES):
-                 p["status"] = "return"
-                 p["closed_at"] = now.isoformat()
-                 apply_return(p, p.get("bet", 0))
-                 if p.get("message_id"):
-                    telegram_edit(p["message_id"], make_result_message(p, "return"))
-                 print(f"♻️ Возврат #{p['trigger_number']}: таймаут", flush=True)
-                 changed = True
             continue
 
         if isinstance(game, str):
@@ -427,21 +432,18 @@ def check_predictions():
 
         p["result_game"] = game_num
         
-        # --- ИЗМЕНЕНИЕ ЗДЕСЬ: теперь возвращается СПИСОК карт ---
         found_cards_data = check_prediction_result(game, p)
 
         if found_cards_data:
             p["status"] = "win"
-            p["found_card"] = found_cards_data[0]["card"]  # Первая карта для записи
+            p["found_card"] = found_cards_data[0]["card"]
             p["closed_at"] = now.isoformat()
             
-            # Начисляем выигрыш за ВСЕ найденные карты
             apply_win(p, current_dogon, found_cards_data)
             
             if p.get("message_id"):
                 telegram_edit(p["message_id"], make_result_message(p, "win", found_cards_data))
             
-            # Логируем все карты
             cards_log = ", ".join([f"{c['card']} ({'игрок' if c['who']=='player' else 'дилер'})" for c in found_cards_data])
             print(f"✅ ПРОГНОЗ #{p['trigger_number']} ЗАШЕЛ в игре #{game_num}! Карты: {cards_log}", flush=True)
             changed = True
@@ -454,7 +456,7 @@ def check_predictions():
             apply_dogon_bet(p, next_dogon)
             
             p["dogon"] = next_dogon
-            p["sent_at"] = now.isoformat()
+            p["sent_at"] = now.isoformat() # Обновляем время для следующего догона
             if p.get("message_id"):
                 telegram_edit(p["message_id"], make_prediction_message(p))
             print(f"❌ D{current_dogon} проиграл, переходим на D{next_dogon} (игра #{target_games[next_dogon]})", flush=True)
@@ -478,10 +480,21 @@ def check_predictions():
 
 def resolve_pending_publishes():
     latest_game = get_latest_game_number()
+    now = now_moscow()
 
     for p in predictions:
         if p.get("status") != "pending_publish" or p.get("message_id"):
             continue
+
+        # --- ЗАЩИТА ОТ ЗАВИСАНИЯ (20 минут) ---
+        created_at = parse_datetime(p.get("created_at"), now)
+        if created_at and now - created_at > timedelta(minutes=20):
+            p["status"] = "cancelled"
+            p["closed_at"] = now.isoformat()
+            print(f"⛔ ПРОГНОЗ #{p['trigger_number']} ОТМЕНЕН: завис в pending_publish > 20 минут", flush=True)
+            save_predictions()
+            continue
+        # --------------------------------------
 
         publish_game = p.get("publish_game")
         if publish_game is None:
@@ -498,8 +511,6 @@ def resolve_pending_publishes():
             # Если игра после триггера еще не завершена — ЖДЕМ
             if not after_game or not after_game.get("is_finished"):
                 continue
-
-            # (Блок с проверкой has_anomaly(after_game) и отменой прогноза УДАЛЕН)
 
             send_prediction(p)
 
