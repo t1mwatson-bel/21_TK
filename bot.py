@@ -200,24 +200,17 @@ def make_prediction_message(prediction):
     suits = prediction["predicted_suits"]
     suits_str = " или ".join([f"{rank}{s}" for s in suits])
     
-    bet_total = prediction.get("bet", BASE_BET * 2)
-    one_bet = bet_total / 2
+    bet_total = prediction.get("bet", BASE_BET * 4)
+    one_bet = bet_total / 4
     
     games_str = format_games_range(target_games)
-    
-    target_who = prediction.get("target_who", "both")
-    who_text = ""
-    if target_who == "player":
-        who_text = " (только у ИГРОКА)"
-    elif target_who == "dealer":
-        who_text = " (только у ДИЛЕРА)"
 
     return (
         f"🎯 Игры: <b>{games_str}</b>\n"
-        f"Ждем: <b>{suits_str}</b>{who_text}\n"
-        f"Ставка: {bet_total}₽ (2×{int(one_bet)}₽)"
+        f"Ждем: <b>{suits_str}</b>\n"
+        f"Ставка: {bet_total}₽ (4×{int(one_bet)}₽)"
     )
-
+    
 def make_result_message(prediction, result, found_cards_data=None):
     target_games = prediction["target_games"]
     rank = prediction["predicted_rank"]
@@ -330,19 +323,9 @@ def check_silent_predictions():
 
             found_cards = check_prediction_result(game, p)
             
-            who_found = set()
-            for card_data in found_cards:
-                who_found.add(card_data["who"])
-
-            if len(who_found) == 2:
-                p["status"] = "skipped"
-                p["closed_at"] = now.isoformat()
-                print(f"⏭️ ТИХИЙ #{p['trigger_number']} ПРОПУЩЕН (выпало у обоих в #{game_num})", flush=True)
-                changed = True
-                break
-            elif len(who_found) == 1:
-                target_who = list(who_found)[0]
-                p["target_who"] = target_who
+            # Если нашли ХОТЯ БЫ ОДНУ карту (у игрока или дилера) — создаем Эхо
+            if found_cards:
+                p["target_who"] = "both"  # Ставим на обоих
                 
                 first_game = target_games[0]
                 echo_first = first_game + 10
@@ -363,12 +346,13 @@ def check_silent_predictions():
                 p["target_games"] = echo_games
                 p["publish_game"] = publish_game
                 p["status"] = "pending_publish"
-                p["bet"] = BASE_BET * 2
+                p["bet"] = BASE_BET * 4  # 4 ставки
                 
-                print(f"🔄 СОЗДАНО ЭХО #{p['trigger_number']} на {target_who} -> Цель: {echo_games} | Публикация на #{publish_game}", flush=True)
+                print(f"🔄 СОЗДАНО ЭХО #{p['trigger_number']} (на обоих) -> Цель: {echo_games} | Публикация на #{publish_game}", flush=True)
                 changed = True
                 break
 
+        # Если ни одна игра не подошла
         if p.get("status") == "pending_silent":
             last_game_num = target_games[-1]
             last_game = games_cache.get(last_game_num)
