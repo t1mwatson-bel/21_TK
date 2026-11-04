@@ -122,75 +122,50 @@ def bet_for_dogon(base_bet, dogon_index):
 # =====================================================================
 
 def apply_dogon_bet(prediction, dogon_index):
-    """
-    Списывает 4 ставки за текущий догон.
-    Записывает 4 транзакции в историю.
-    """
     base_bet = prediction.get("base_bet", bank_state["current_bet"])
-    one_bet = bet_for_dogon(base_bet, dogon_index)
+    # Берем фиксированную ставку из DOGON_BETS (50, 75, 100, 125)
+    one_bet = DOGON_BETS[dogon_index] if dogon_index < len(DOGON_BETS) else 125
     
-    # Общая сумма списания
-    total_bet = one_bet * BETS_PER_PREDICTION
-    prediction["bet"] = total_bet  # Записываем общую ставку для сообщения
+    # В Эхо 2 ставки (на 2 масти для одного человека)
+    total_bet = one_bet * 2
+    prediction["bet"] = total_bet
 
     bank_state["balance"] = round(bank_state["balance"] - total_bet, 2)
 
-    # Берем номер игры из target_games для текущего догона
     target_games = prediction.get("target_games", [])
     game_number = target_games[dogon_index] if dogon_index < len(target_games) else None
-    
     rank = prediction.get("predicted_rank")
     suits = prediction.get("predicted_suits", ["♠️", "♣️"])
+    target_who = prediction.get("target_who", "both")
 
-    # Пишем 4 транзакции в историю
     for suit in suits:
-        for who in ["player", "dealer"]:
-            record = {
-                "type": "bet",
-                "game_number": game_number,
-                "rank": rank,
-                "suit": suit,
-                "who": who,
-                "dogon": dogon_index,
-                "amount": one_bet,
-                "balance_after": bank_state["balance"],
-                "at": datetime.now(MOSCOW_TZ).isoformat(),
-            }
-            bank_state["history"].append(record)
+        record = {
+            "type": "bet",
+            "game_number": game_number,
+            "rank": rank,
+            "suit": suit,
+            "who": target_who,
+            "dogon": dogon_index,
+            "amount": one_bet,
+            "balance_after": bank_state["balance"],
+            "at": datetime.now(MOSCOW_TZ).isoformat(),
+        }
+        bank_state["history"].append(record)
 
     save_bank()
-
-    print(
-        f"💸 BET Д{dogon_index}: списано {total_bet} ₽ (4×{one_bet}) | "
-        f"баланс {bank_state['balance']} ₽",
-        flush=True,
-    )
-
+    print(f"💸 BET Д{dogon_index}: списано {total_bet} ₽ (2×{one_bet}) | баланс {bank_state['balance']} ₽", flush=True)
     return True
 
 
-# =====================================================================
-# РЕЗУЛЬТАТ: WIN
-# =====================================================================
-
 def apply_win(prediction, dogon_index, found_cards_data):
-    """
-    Прогноз выиграл.
-    found_cards_data — СПИСОК словарей:
-    [{"card": "Q♦️", "rank": "Q", "suit": "♦️", "who": "dealer"}, ...]
-    """
-    base_bet = prediction.get("base_bet", bank_state["current_bet"])
-    one_bet = bet_for_dogon(base_bet, dogon_index)
-    
+    one_bet = DOGON_BETS[dogon_index] if dogon_index < len(DOGON_BETS) else 125
     total_payout = 0
-    total_cf_summary = []
 
     for card_data in found_cards_data:
         rank = card_data["rank"]
         suit = card_data["suit"]
         who = card_data["who"]
 
-        # Берем правильный коэффициент
         if who == "player":
             cf = get_player_cf(rank, suit)
         else:
@@ -198,9 +173,8 @@ def apply_win(prediction, dogon_index, found_cards_data):
 
         payout = round(one_bet * cf, 2)
         total_payout += payout
-        total_cf_summary.append(f"{card_data['card']}×{cf}")
-
-        # Записываем транзакцию по каждой карте отдельно
+        
+        # Запись в историю
         target_games = prediction.get("target_games", [])
         game_number = target_games[dogon_index] if dogon_index < len(target_games) else None
         
@@ -224,7 +198,7 @@ def apply_win(prediction, dogon_index, found_cards_data):
     bank_state["current_bet"] = START_BET
 
     save_bank()
-    print(f"💰 WIN: {', '.join(total_cf_summary)} → {total_payout} ₽ | баланс {bank_state['balance']} ₽", flush=True)
+    print(f"💰 WIN: {total_payout} ₽ | баланс {bank_state['balance']} ₽", flush=True)
     return True
 
 
