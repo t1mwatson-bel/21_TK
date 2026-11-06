@@ -24,7 +24,7 @@ def api_games():
         with open(LIVE_GAMES_FILE, "r", encoding="utf-8") as f:
             data = json.load(f)
             
-        # Проверяем формат файла (старый или новый)
+        # Поддержка старого и нового формата
         if isinstance(data, list):
             real_games = data
             last_num = real_games[0]["num"] if real_games else 0
@@ -34,17 +34,45 @@ def api_games():
             last_num = data.get("last_game_num", 0)
             updated_at = data.get("updated_at", time.time())
 
-        virtual_games = []
-        now = time.time()
-        base_num = last_num if last_num > 0 else 1
+        # Сортируем реальные игры по возрастанию (чтобы 1410 была выше 1411)
+        real_games.sort(key=lambda x: x["num"])
 
-        # Генерируем 4 будущие игры
+        # 1. Берем последнюю реальную игру (активную)
+        active_game = None
+        for g in reversed(real_games):
+            if not g["is_finished"]:
+                active_game = g
+                break
+        
+        # Если активной нет (все завершены), берем самую последнюю
+        if not active_game and real_games:
+            active_game = real_games[-1]
+
+        result_games = []
+        now = time.time()
+        base_num = last_num
+
+        # 2. Добавляем активную игру (если есть)
+        if active_game:
+            active_game["is_virtual"] = False
+            active_game["time_left"] = 0
+            active_game["status"] = "Событие идет" if not active_game["is_finished"] else "Игра завершена"
+            result_games.append(active_game)
+            base_num = max(base_num, active_game["num"])
+
+        # 3. Генерируем будущие игры (виртуальные) по возрастанию
         for i in range(1, 5):
             future_num = base_num + i
-            time_left = int(60 - (now - updated_at) + (i - 1) * 60)
-            if time_left < 0: time_left = 0
+            # Вычисляем таймер (каждую минуту новая игра)
+            # Имитируем, что игра начнется через 60 секунд от последнего обновления
+            elapsed = now - updated_at
+            # Базовый таймер для первой виртуальной игры
+            base_time_left = 60 - (elapsed % 60) 
             
-            virtual_games.append({
+            # Для каждой следующей прибавляем по 60 секунд
+            time_left = int(base_time_left + (i - 1) * 60)
+            
+            result_games.append({
                 "id": f"virtual_{future_num}",
                 "num": future_num,
                 "p_cards": [],
@@ -54,19 +82,10 @@ def api_games():
                 "is_finished": False,
                 "is_virtual": True,
                 "time_left": time_left,
-                "status": "Событие идет" if time_left > 0 else "Ожидание"
+                "status": "Событие идет"
             })
 
-        # Берем 3 последних реальных игры
-        for g in real_games[:3]:
-            g["is_virtual"] = False
-            g["time_left"] = 0
-            g["status"] = "Игра завершена" if g["is_finished"] else "Событие идет"
-
-        all_games = real_games[:3] + virtual_games
-        all_games.sort(key=lambda x: x["num"], reverse=True)
-        
-        return jsonify(all_games)
+        return jsonify(result_games)
     except Exception as e:
         print(f"Ошибка API games: {e}")
         return jsonify([])
