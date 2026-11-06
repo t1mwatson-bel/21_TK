@@ -3,197 +3,257 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Мой Букмекер</title>
+    <title>MY-BET | Live</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        /* ...ТУТ БУДЕТ CSS ИЗ ПРЕДЫДУЩЕГО СООБЩЕНИЯ... (я его сократил для ответа, но ты вставь тот, что я давал выше) ... */
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: sans-serif; -webkit-tap-highlight-color: transparent; }
-        body { background-color: #1e2124; color: #fff; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
-        
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        body { background-color: #f0f2f5; color: #1a1a1a; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+
         /* ШАПКА */
-        header { background-color: #2b2f33; padding: 15px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #3a3f44; }
-        .header-title { font-size: 18px; font-weight: 500; color: #a0a0a0; }
-        .balance { color: #e5972c; font-weight: bold; font-size: 16px; }
+        header { background-color: #1e252b; padding: 12px 15px; display: flex; justify-content: space-between; align-items: center; }
+        .logo { font-size: 20px; font-weight: 900; color: #fff; letter-spacing: 1px;}
+        .logo span { color: #f6a800; }
+        .header-right { display: flex; align-items: center; gap: 15px; }
+        .balance { background: #2f363d; color: #fff; padding: 8px 12px; border-radius: 6px; font-weight: bold; font-size: 14px;}
+        .balance i { color: #f6a800; margin-right: 5px; }
+
+        /* НАВИГАЦИЯ LIVE */
+        .sub-header { background-color: #252d34; padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; color: #fff; }
+        .sub-header h2 { font-size: 16px; display: flex; align-items: center; gap: 10px; }
+        .sub-header-icons { display: flex; gap: 15px; font-size: 18px; color: #a0a0a0; }
+
+        /* КАТЕГОРИИ СПОРТА */
+        .sports-nav { background: #1e252b; display: flex; gap: 10px; padding: 10px 15px; overflow-x: auto; }
+        .sport-item { display: flex; flex-direction: column; align-items: center; gap: 5px; color: #a0a0a0; font-size: 12px; min-width: 70px; padding: 8px; border-radius: 8px; background: #2f363d; }
+        .sport-item.active { background: #f6a800; color: #fff; }
+        .sport-item i { font-size: 18px; }
 
         /* КОНТЕНТ */
-        .content { padding: 15px; flex: 1; overflow-y: auto; }
+        .content { padding: 15px; flex: 1; overflow-y: auto; padding-bottom: 80px; }
         
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        
-        .game-card { background-color: #2b2f33; border-radius: 8px; padding: 12px; display: flex; flex-direction: column; gap: 8px; }
-        .game-header { display: flex; justify-content: space-between; font-size: 12px; color: #a0a0a0; }
-        
-        /* КАРТЫ */
-        .cards-row { display: flex; gap: 5px; }
-        .card { background: #fff; color: #000; border-radius: 4px; padding: 4px 6px; font-size: 12px; font-weight: bold; }
-        .card.red { color: #d32f2f; }
-        
-        .vs-block { display: flex; justify-content: space-between; align-items: center; margin: 10px 0; font-weight: bold; font-size: 14px;}
-        .score { font-size: 16px; color: #e5972c; }
+        .league-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; color: #555; font-weight: bold; font-size: 14px; }
+        .league-header i { color: #f6a800; }
 
-        /* КНОПКА СТАВКИ */
-        .bet-btn { background-color: #3a3f44; border: none; color: #fff; padding: 10px; border-radius: 6px; cursor: pointer; width: 100%; display: flex; justify-content: space-between; font-weight: bold; }
-        .bet-btn:hover { background-color: #4a4f54; }
-        .bet-btn .coef { color: #e5972c; }
-
-        /* НИЖНЕЕ МЕНЮ */
-        .bottom-nav { background-color: #2b2f33; display: flex; justify-content: space-around; padding: 10px 0; border-top: 1px solid #3a3f44; position: relative; }
-        .nav-item { display: flex; flex-direction: column; align-items: center; color: #777; font-size: 12px; gap: 4px; }
-        .nav-item.active { color: #e5972c; }
+        /* КАРТОЧКИ ИГР */
+        .game-card { background: #fff; border-radius: 8px; padding: 15px; margin-bottom: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); border: 1px solid #e0e0e0; }
         
-        /* МОДАЛКА СТАВКИ */
-        .modal { display: none; position: fixed; bottom: 0; left: 0; width: 100%; background: #2b2f33; border-radius: 15px 15px 0 0; padding: 20px; box-shadow: 0 -5px 20px rgba(0,0,0,0.5); z-index: 100; }
-        .modal.active { display: block; }
+        .card-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .live-badge { background: #f6a800; color: #fff; font-size: 10px; font-weight: bold; padding: 3px 6px; border-radius: 4px; }
+        .status-text { font-size: 13px; color: #777; }
+        
+        .teams { display: flex; flex-direction: column; gap: 5px; margin-bottom: 10px; }
+        .team-row { display: flex; justify-content: space-between; align-items: center; font-size: 15px; font-weight: 500; }
+        .team-name { display: flex; align-items: center; gap: 10px; }
+        .team-name i { color: #999; }
+        .team-score { font-weight: bold; color: #f6a800; font-size: 16px;}
+        
+        .game-num { font-size: 13px; color: #777; margin-bottom: 10px; }
+        .timer-text { font-size: 13px; color: #777; margin-bottom: 10px; }
+
+        /* КОЭФФИЦИЕНТЫ */
+        .odds-row { display: flex; gap: 10px; }
+        .odd-btn { flex: 1; background: #f0f2f5; border: none; padding: 10px 5px; border-radius: 6px; cursor: pointer; display: flex; flex-direction: column; align-items: center; transition: 0.2s;}
+        .odd-btn:hover { background: #e0e4eb; }
+        .odd-btn .label { font-size: 11px; color: #777; margin-bottom: 2px; }
+        .odd-btn .val { font-size: 14px; font-weight: bold; color: #1a1a1a; }
+        .odd-btn.locked { opacity: 0.5; cursor: not-allowed; }
+        .odd-btn.locked .val { color: #999; }
+
+        /* НИЖНЯЯ ПАНЕЛЬ (КУПОН) */
+        .bottom-bar { position: fixed; bottom: 0; left: 0; width: 100%; background: #fff; border-top: 1px solid #e0e0e0; padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 -2px 10px rgba(0,0,0,0.05); z-index: 50;}
+        .coupon-toggle { display: flex; align-items: center; gap: 10px; font-weight: bold; color: #1a1a1a; }
+        .coupon-toggle i { color: #f6a800; }
+        .btn-place { background: #f6a800; color: #fff; border: none; padding: 10px 20px; border-radius: 6px; font-weight: bold; cursor: pointer; }
+
+        /* МОДАЛКА */
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 99; }
-        .modal-overlay.active { display: block; }
-
-        .input-group { margin: 15px 0; }
-        .input-group input { width: 100%; padding: 12px; background: #1e2124; border: 1px solid #3a3f44; color: #fff; border-radius: 6px; font-size: 16px; }
+        .modal { display: none; position: fixed; bottom: 0; left: 0; width: 100%; background: #fff; border-radius: 15px 15px 0 0; padding: 20px; z-index: 100; }
+        .modal.active, .modal-overlay.active { display: block; }
         
-        .btn-primary { background: #e5972c; color: #fff; border: none; padding: 15px; width: 100%; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; }
+        .modal h3 { margin-bottom: 15px; color: #1a1a1a;}
+        .input-group { margin: 15px 0; }
+        .input-group input { width: 100%; padding: 15px; background: #f0f2f5; border: 1px solid #ddd; border-radius: 6px; font-size: 18px; font-weight: bold; color: #1a1a1a; }
+        .input-group input:focus { outline: none; border-color: #f6a800; }
+        .btn-confirm { width: 100%; background: #f6a800; color: #fff; border: none; padding: 15px; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer;}
     </style>
 </head>
 <body>
 
+    <!-- ШАПКА -->
     <header>
-        <div class="header-title">Мой Букмекер</div>
-        <div class="balance" id="balance">0 ₽</div>
+        <div class="logo">MY<span>BET</span></div>
+        <div class="header-right">
+            <div class="balance"><i class="fa-solid fa-wallet"></i> <span id="balance">0.00</span> ₽</div>
+        </div>
     </header>
 
-    <div class="content">
-        <div class="grid" id="games-grid">
-            <!-- Сюда будут падать карточки -->
+    <!-- LIVE HEADER -->
+    <div class="sub-header">
+        <h2><i class="fa-solid fa-arrow-left"></i> Live</h2>
+        <div class="sub-header-icons">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <i class="fa-regular fa-star"></i>
+            <i class="fa-solid fa-filter"></i>
         </div>
+    </div>
+
+    <!-- КАТЕГОРИИ -->
+    <div class="sports-nav">
+        <div class="sport-item"><i class="fa-solid fa-futbol"></i><span>Футбол</span></div>
+        <div class="sport-item"><i class="fa-solid fa-baseball"></i><span>Теннис</span></div>
+        <div class="sport-item"><i class="fa-solid fa-basketball"></i><span>Баскетбол</span></div>
+        <div class="sport-item active"><i class="fa-solid fa-diamond"></i><span>Бакара</span></div>
+    </div>
+
+    <div class="content">
+        <div class="league-header">
+            <div><i class="fa-solid fa-diamond"></i> Бакара (Live)</div>
+            <div><i class="fa-solid fa-globe"></i> <i class="fa-solid fa-chevron-up"></i></div>
+        </div>
+
+        <div id="games-container">
+            <!-- Сюда падают игры -->
+        </div>
+    </div>
+
+    <!-- КУПОН ВНИЗУ -->
+    <div class="bottom-bar">
+        <div class="coupon-toggle">
+            <i class="fa-solid fa-ticket"></i> Быстрый купон
+        </div>
+        <button class="btn-place" id="coupon-btn">-</button>
     </div>
 
     <!-- МОДАЛКА СТАВКИ -->
     <div class="modal-overlay" id="overlay" onclick="closeModal()"></div>
     <div class="modal" id="bet-modal">
-        <h3 style="margin-bottom: 15px;" id="modal-title">Ставка</h3>
-        <div style="color: #a0a0a0; font-size: 14px; margin-bottom: 10px;" id="modal-game">Игра #</div>
-        
+        <h3 id="modal-title">Ставка на Бакару</h3>
+        <div style="color: #777; font-size: 14px; margin-bottom: 15px;" id="modal-game">Игра #</div>
+        <div style="background: #f0f2f5; padding: 10px; border-radius: 6px; margin-bottom: 15px;">
+            <div style="font-size: 12px; color: #777; margin-bottom: 5px;">Масть игрока</div>
+            <div style="font-size: 16px; font-weight: bold; color: #f6a800;">Коэффициент 1.9</div>
+        </div>
         <div class="input-group">
-            <input type="number" id="bet-amount" placeholder="Сумма в ₽" value="100">
+            <input type="number" id="bet-amount" placeholder="Сумма ставки" value="100">
         </div>
-        <div style="font-size: 12px; color: #a0a0a0; margin-bottom: 15px;">
-            Возможный выигрыш: <span id="possible-win" style="color: #e5972c;">190 ₽</span>
-        </div>
-        
-        <button class="btn-primary" onclick="placeBet()">Поставить</button>
-    </div>
-
-    <!-- НИЖНЕЕ МЕНЮ -->
-    <div class="bottom-nav">
-        <div class="nav-item active"><i class="fa-solid fa-fire"></i><span>Популярное</span></div>
-        <div class="nav-item"><i class="fa-solid fa-star"></i><span>Избранное</span></div>
-        <div class="nav-item"><i class="fa-solid fa-ticket"></i><span>Купон</span></div>
-        <div class="nav-item"><i class="fa-regular fa-clock"></i><span>История</span></div>
+        <button class="btn-confirm" onclick="placeBet()">Сделать ставку</button>
     </div>
 
     <script>
         let currentBalance = 0;
         let currentGameId = null;
-        let currentSuit = null;
 
-        // Форматирование карт
-        function renderCards(cards) {
-            return cards.map(c => {
-                const isRed = c.includes('♥') || c.includes('♦');
-                return `<span class="card ${isRed ? 'red' : ''}">${c}</span>`;
-            }).join('');
-        }
-
-        // Загрузка баланса
         async function loadUser() {
             const res = await fetch('/api/user');
             const data = await res.json();
             currentBalance = data.balance;
-            document.getElementById('balance').innerText = data.balance.toFixed(2) + ' ₽';
+            document.getElementById('balance').innerText = data.balance.toFixed(2);
         }
 
-        // Загрузка игр
         async function loadGames() {
             const res = await fetch('/api/games');
             const games = await res.json();
-            const grid = document.getElementById('games-grid');
-            grid.innerHTML = '';
+            const container = document.getElementById('games-container');
+            container.innerHTML = '';
 
             games.forEach(g => {
                 const div = document.createElement('div');
                 div.className = 'game-card';
                 
+                // Статус игры
+                let statusBadge = g.is_finished ? '' : '<span class="live-badge">LIVE</span>';
+                let statusText = `<div class="status-text">${g.status}</div>`;
+                let timerText = g.is_virtual ? `<div class="timer-text">До начала: 00:${g.time_left.toString().padStart(2, '0')}</div>` : '';
+
+                // Карты (если есть)
+                let playerCards = g.p_cards.length > 0 ? `<div style="font-size: 12px; color: #777;">Карты: ${g.p_cards.join(' ')}</div>` : '';
+
+                // Кнопки
+                let oddsHtml = '';
                 if (g.is_finished) {
-                    div.innerHTML = `
-                        <div class="game-header"><span>Баккара. ${g.num}</span></div>
-                        <div class="cards-row">${renderCards(g.p_cards)}</div>
-                        <div class="vs-block"><span class="score">${g.p_score}</span> : <span class="score">${g.d_score}</span></div>
-                        <div class="cards-row" style="justify-content: flex-end;">${renderCards(g.d_cards)}</div>
-                        <div style="text-align: center; font-size: 12px; color: #a0a0a0; margin-top: 5px;">Игра завершена</div>
+                    // Завершенная игра - кнопки заблокированы
+                    oddsHtml = `
+                        <button class="odd-btn locked"><span class="label">П1</span><span class="val">-</span></button>
+                        <button class="odd-btn locked"><span class="label">Ничья</span><span class="val">-</span></button>
+                        <button class="odd-btn locked"><span class="label">П2</span><span class="val">-</span></button>
                     `;
                 } else {
-                    div.innerHTML = `
-                        <div class="game-header"><span>Баккара. ${g.num}</span></div>
-                        <div class="vs-block">Игрок <span style="font-size:10px; color:#777">VS</span> Банкир</div>
-                        <div class="cards-row" style="min-height: 20px;">${renderCards(g.p_cards)}</div>
-                        <button class="bet-btn" onclick="openBetModal('${g.id}', ${g.num})">
-                            <span>Масть игрока</span> <span class="coef">1.9</span>
+                    // Активная или виртуальная игра - кнопки активны
+                    oddsHtml = `
+                        <button class="odd-btn" onclick="openBetModal('${g.id}', ${g.num})">
+                            <span class="label">Масть игрока</span><span class="val" style="color:#f6a800;">1.9</span>
                         </button>
+                        <button class="odd-btn locked"><span class="label">П1</span><span class="val">2.1</span></button>
+                        <button class="odd-btn locked"><span class="label">П2</span><span class="val">2.0</span></button>
                     `;
                 }
-                grid.appendChild(div);
+
+                div.innerHTML = `
+                    <div class="card-top">
+                        <div><i class="fa-solid fa-diamond" style="color: #f6a800;"></i> Бакара</div>
+                        <div>${statusBadge} ${statusText}</div>
+                    </div>
+                    <div class="teams">
+                        <div class="team-row">
+                            <div class="team-name"><i class="fa-solid fa-user"></i> Игрок</div>
+                            <div class="team-score">${g.p_score}</div>
+                        </div>
+                        <div class="team-row">
+                            <div class="team-name"><i class="fa-solid fa-building-columns"></i> Банкир</div>
+                            <div class="team-score">${g.d_score}</div>
+                        </div>
+                    </div>
+                    ${playerCards}
+                    <div class="game-num">${g.num}</div>
+                    ${timerText}
+                    <div class="odds-row">
+                        ${oddsHtml}
+                    </div>
+                `;
+                container.appendChild(div);
             });
         }
 
-        // Открытие модалки
         function openBetModal(gameId, gameNum) {
+            if (gameId.startsWith('virtual_')) {
+                // Если игра виртуальная, разрешаем ставить (для демо)
+                // Но по факту она еще не началась, поэтому можно просто показать модалку
+            }
             currentGameId = gameId;
             document.getElementById('modal-game').innerText = `Игра #${gameNum}`;
             document.getElementById('bet-modal').classList.add('active');
             document.getElementById('overlay').classList.add('active');
-            updateWin();
         }
 
-        // Закрытие модалки
         function closeModal() {
             document.getElementById('bet-modal').classList.remove('active');
             document.getElementById('overlay').classList.remove('active');
         }
 
-        // Подсчет выигрыша
-        document.getElementById('bet-amount').addEventListener('input', updateWin);
-        function updateWin() {
-            const amount = parseFloat(document.getElementById('bet-amount').value) || 0;
-            document.getElementById('possible-win').innerText = (amount * 1.9).toFixed(0) + ' ₽';
-        }
-
-        // Ставка
         async function placeBet() {
             const amount = parseFloat(document.getElementById('bet-amount').value);
-            if (amount > currentBalance) {
-                alert('Недостаточно средств!');
-                return;
-            }
+            if (amount > currentBalance) { alert('Недостаточно средств!'); return; }
+            if (amount <= 0) { alert('Введите сумму больше 0!'); return; }
 
             const res = await fetch('/api/bet', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ game_id: currentGameId, suit: "any", amount: amount })
+                body: JSON.stringify({ game_id: currentGameId, amount: amount })
             });
             const data = await res.json();
             
             if (data.status === 'ok') {
                 alert('Ставка принята!');
                 closeModal();
-                loadUser(); // Обновляем баланс
+                loadUser();
             } else {
                 alert(data.message);
             }
         }
 
-        // Инициализация
         loadUser();
         loadGames();
-        setInterval(loadGames, 2000); // Обновляем игры каждые 2 секунды
+        setInterval(loadGames, 2000);
     </script>
 </body>
 </html>
