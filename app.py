@@ -1,13 +1,16 @@
 import json
 import os
+import threading
+import time
 from flask import Flask, render_template, jsonify, request
+import bot # Импортируем твой сборщик данных
 
 app = Flask(__name__)
 
 LIVE_GAMES_FILE = "live_games.json"
 USER_FILE = "user_demo.json"
 
-# Создаем демо-пользователя, если его нет
+# Создаем демо-пользователя, если его нет (Баланс 46000)
 if not os.path.exists(USER_FILE):
     with open(USER_FILE, "w", encoding="utf-8") as f:
         json.dump({"balance": 46000.0, "bets": []}, f)
@@ -60,5 +63,21 @@ def api_bet():
 
     return jsonify({"status": "ok", "balance": user["balance"]})
 
+# =====================================================================
+# ФОНОВЫЙ ЗАПУСК СБОРЩИКА ДАННЫХ
+# =====================================================================
+def run_fetcher():
+    # Небольшая задержка, чтобы Flask успел запуститься
+    time.sleep(2) 
+    try:
+        # Запускаем основной цикл из bot.py
+        bot.main() 
+    except Exception as e:
+        print(f"❌ Ошибка в сборщике данных: {e}")
+
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    # Запускаем сборщик в фоновом потоке
+    threading.Thread(target=run_fetcher, daemon=True).start()
+    
+    # Запускаем Flask на порту 3000
+    app.run(host='0.0.0.0', port=3000, debug=False)
