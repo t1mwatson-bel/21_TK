@@ -24,9 +24,15 @@ def api_games():
         with open(LIVE_GAMES_FILE, "r", encoding="utf-8") as f:
             data = json.load(f)
             
-        real_games = data.get("games", [])
-        last_num = data.get("last_game_num", 0)
-        updated_at = data.get("updated_at", time.time())
+        # Проверяем формат файла (старый или новый)
+        if isinstance(data, list):
+            real_games = data
+            last_num = real_games[0]["num"] if real_games else 0
+            updated_at = time.time()
+        else:
+            real_games = data.get("games", [])
+            last_num = data.get("last_game_num", 0)
+            updated_at = data.get("updated_at", time.time())
 
         virtual_games = []
         now = time.time()
@@ -62,6 +68,7 @@ def api_games():
         
         return jsonify(all_games)
     except Exception as e:
+        print(f"Ошибка API games: {e}")
         return jsonify([])
 
 @app.route('/api/user')
