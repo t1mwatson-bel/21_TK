@@ -13,7 +13,6 @@
         header { background-color: #1e252b; padding: 12px 15px; display: flex; justify-content: space-between; align-items: center; }
         .logo { font-size: 20px; font-weight: 900; color: #fff; letter-spacing: 1px;}
         .logo span { color: #f6a800; }
-        .header-right { display: flex; align-items: center; gap: 15px; }
         .balance { background: #2f363d; color: #fff; padding: 8px 12px; border-radius: 6px; font-weight: bold; font-size: 14px;}
         .balance i { color: #f6a800; margin-right: 5px; }
 
@@ -31,33 +30,29 @@
         /* КОНТЕНТ */
         .content { padding: 15px; flex: 1; overflow-y: auto; padding-bottom: 80px; }
         
-        .league-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; color: #555; font-weight: bold; font-size: 14px; }
-        .league-header i { color: #f6a800; }
-
         /* КАРТОЧКИ ИГР */
         .game-card { background: #fff; border-radius: 8px; padding: 15px; margin-bottom: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); border: 1px solid #e0e0e0; }
         
-        .card-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .timer-display { font-size: 13px; color: #333; font-weight: 500; }
         .live-badge { background: #f6a800; color: #fff; font-size: 10px; font-weight: bold; padding: 3px 6px; border-radius: 4px; }
-        .status-text { font-size: 13px; color: #777; }
         
         .teams { display: flex; flex-direction: column; gap: 5px; margin-bottom: 10px; }
         .team-row { display: flex; justify-content: space-between; align-items: center; font-size: 15px; font-weight: 500; }
         .team-name { display: flex; align-items: center; gap: 10px; }
         .team-name i { color: #999; }
-        .team-score { font-weight: bold; color: #f6a800; font-size: 16px;}
+        .team-score { font-weight: bold; font-size: 16px;}
         
         .game-num { font-size: 13px; color: #777; margin-bottom: 10px; }
-        .timer-text { font-size: 13px; color: #777; margin-bottom: 10px; }
 
         /* КОЭФФИЦИЕНТЫ */
-        .odds-row { display: flex; gap: 10px; }
-        .odd-btn { flex: 1; background: #f0f2f5; border: none; padding: 10px 5px; border-radius: 6px; cursor: pointer; display: flex; flex-direction: column; align-items: center; transition: 0.2s;}
+        .odds-row { display: flex; gap: 8px; }
+        .odd-btn { flex: 1; background: #f0f2f5; border: none; padding: 10px 5px; border-radius: 6px; cursor: pointer; display: flex; flex-direction: column; align-items: center; transition: 0.2s; border: 1px solid transparent;}
         .odd-btn:hover { background: #e0e4eb; }
         .odd-btn .label { font-size: 11px; color: #777; margin-bottom: 2px; }
-        .odd-btn .val { font-size: 14px; font-weight: bold; color: #1a1a1a; }
+        .odd-btn .val { font-size: 15px; font-weight: bold; color: #1a1a1a; }
+        .odd-btn .val.orange { color: #f6a800; }
         .odd-btn.locked { opacity: 0.5; cursor: not-allowed; }
-        .odd-btn.locked .val { color: #999; }
 
         /* НИЖНЯЯ ПАНЕЛЬ (КУПОН) */
         .bottom-bar { position: fixed; bottom: 0; left: 0; width: 100%; background: #fff; border-top: 1px solid #e0e0e0; padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 -2px 10px rgba(0,0,0,0.05); z-index: 50;}
@@ -73,21 +68,16 @@
         .modal h3 { margin-bottom: 15px; color: #1a1a1a;}
         .input-group { margin: 15px 0; }
         .input-group input { width: 100%; padding: 15px; background: #f0f2f5; border: 1px solid #ddd; border-radius: 6px; font-size: 18px; font-weight: bold; color: #1a1a1a; }
-        .input-group input:focus { outline: none; border-color: #f6a800; }
         .btn-confirm { width: 100%; background: #f6a800; color: #fff; border: none; padding: 15px; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer;}
     </style>
 </head>
 <body>
 
-    <!-- ШАПКА -->
     <header>
         <div class="logo">MY<span>BET</span></div>
-        <div class="header-right">
-            <div class="balance"><i class="fa-solid fa-wallet"></i> <span id="balance">0.00</span> ₽</div>
-        </div>
+        <div class="balance"><i class="fa-solid fa-wallet"></i> <span id="balance">0.00</span> ₽</div>
     </header>
 
-    <!-- LIVE HEADER -->
     <div class="sub-header">
         <h2><i class="fa-solid fa-arrow-left"></i> Live</h2>
         <div class="sub-header-icons">
@@ -97,26 +87,20 @@
         </div>
     </div>
 
-    <!-- КАТЕГОРИИ -->
     <div class="sports-nav">
         <div class="sport-item"><i class="fa-solid fa-futbol"></i><span>Футбол</span></div>
         <div class="sport-item"><i class="fa-solid fa-baseball"></i><span>Теннис</span></div>
         <div class="sport-item"><i class="fa-solid fa-basketball"></i><span>Баскетбол</span></div>
+        <div class="sport-item"><i class="fa-solid fa-hockey-puck"></i><span>Хоккей</span></div>
         <div class="sport-item active"><i class="fa-solid fa-diamond"></i><span>Бакара</span></div>
     </div>
 
     <div class="content">
-        <div class="league-header">
-            <div><i class="fa-solid fa-diamond"></i> Бакара (Live)</div>
-            <div><i class="fa-solid fa-globe"></i> <i class="fa-solid fa-chevron-up"></i></div>
-        </div>
-
         <div id="games-container">
-            <!-- Сюда падают игры -->
+            <!-- Игры -->
         </div>
     </div>
 
-    <!-- КУПОН ВНИЗУ -->
     <div class="bottom-bar">
         <div class="coupon-toggle">
             <i class="fa-solid fa-ticket"></i> Быстрый купон
@@ -124,14 +108,13 @@
         <button class="btn-place" id="coupon-btn">-</button>
     </div>
 
-    <!-- МОДАЛКА СТАВКИ -->
     <div class="modal-overlay" id="overlay" onclick="closeModal()"></div>
     <div class="modal" id="bet-modal">
-        <h3 id="modal-title">Ставка на Бакару</h3>
+        <h3 id="modal-title">Ставка</h3>
         <div style="color: #777; font-size: 14px; margin-bottom: 15px;" id="modal-game">Игра #</div>
         <div style="background: #f0f2f5; padding: 10px; border-radius: 6px; margin-bottom: 15px;">
-            <div style="font-size: 12px; color: #777; margin-bottom: 5px;">Масть игрока</div>
-            <div style="font-size: 16px; font-weight: bold; color: #f6a800;">Коэффициент 1.9</div>
+            <div style="font-size: 12px; color: #777; margin-bottom: 5px;" id="modal-market">Рынок</div>
+            <div style="font-size: 16px; font-weight: bold; color: #f6a800;" id="modal-coef">Коэффициент</div>
         </div>
         <div class="input-group">
             <input type="number" id="bet-amount" placeholder="Сумма ставки" value="100">
@@ -142,6 +125,11 @@
     <script>
         let currentBalance = 0;
         let currentGameId = null;
+        let currentMarket = "";
+        let currentCoef = 0;
+        
+        // Хранилище таймеров
+        let timers = {};
 
         async function loadUser() {
             const res = await fetch('/api/user');
@@ -150,48 +138,78 @@
             document.getElementById('balance').innerText = data.balance.toFixed(2);
         }
 
+        function formatTime(seconds) {
+            if (seconds <= 0) return "00:00";
+            const m = Math.floor(seconds / 60);
+            const s = seconds % 60;
+            return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+        }
+
+        // Тик таймеров каждую секунду
+        setInterval(() => {
+            for (let id in timers) {
+                if (timers[id] > 0) {
+                    timers[id]--;
+                    const el = document.getElementById(`timer_${id}`);
+                    if (el) el.innerText = formatTime(timers[id]);
+                }
+            }
+        }, 1000);
+
         async function loadGames() {
             const res = await fetch('/api/games');
             const games = await res.json();
             const container = document.getElementById('games-container');
+            
+            // Очищаем контейнер
             container.innerHTML = '';
+            timers = {}; // Сбрасываем таймеры перед новой отрисовкой
 
             games.forEach(g => {
                 const div = document.createElement('div');
                 div.className = 'game-card';
                 
-                // Статус игры
-                let statusBadge = g.is_finished ? '' : '<span class="live-badge">LIVE</span>';
-                let statusText = `<div class="status-text">${g.status}</div>`;
-                let timerText = g.is_virtual ? `<div class="timer-text">До начала: 00:${g.time_left.toString().padStart(2, '0')}</div>` : '';
-
-                // Карты (если есть)
-                let playerCards = g.p_cards.length > 0 ? `<div style="font-size: 12px; color: #777;">Карты: ${g.p_cards.join(' ')}</div>` : '';
-
-                // Кнопки
-                let oddsHtml = '';
-                if (g.is_finished) {
-                    // Завершенная игра - кнопки заблокированы
-                    oddsHtml = `
-                        <button class="odd-btn locked"><span class="label">П1</span><span class="val">-</span></button>
-                        <button class="odd-btn locked"><span class="label">Ничья</span><span class="val">-</span></button>
-                        <button class="odd-btn locked"><span class="label">П2</span><span class="val">-</span></button>
+                let headerHtml = '';
+                if (g.is_virtual) {
+                    timers[g.id] = g.time_left; // Запоминаем время
+                    headerHtml = `
+                        <div class="timer-display" id="timer_${g.id}">${formatTime(g.time_left)}</div>
+                        <span class="live-badge">LIVE</span>
                     `;
                 } else {
-                    // Активная или виртуальная игра - кнопки активны
+                    headerHtml = `
+                        <div class="timer-display">${g.is_finished ? 'Игра завершена' : 'Событие идет'}</div>
+                        <span class="live-badge">LIVE</span>
+                    `;
+                }
+
+                // Карты, если есть
+                let cardsHtml = '';
+                if (g.p_cards && g.p_cards.length > 0) {
+                    cardsHtml = `<div style="font-size: 13px; color: #555; margin-bottom: 10px; font-weight: 500;">Карты: ${g.p_cards.join(' ')}</div>`;
+                }
+
+                // Рынки
+                let oddsHtml = '';
+                if (g.is_finished) {
                     oddsHtml = `
-                        <button class="odd-btn" onclick="openBetModal('${g.id}', ${g.num})">
-                            <span class="label">Масть игрока</span><span class="val" style="color:#f6a800;">1.9</span>
-                        </button>
-                        <button class="odd-btn locked"><span class="label">П1</span><span class="val">2.1</span></button>
-                        <button class="odd-btn locked"><span class="label">П2</span><span class="val">2.0</span></button>
+                        <button class="odd-btn locked"><span class="label">П1</span><span class="val">${g.p_score > g.d_score ? '2.14' : '-'}</span></button>
+                        <button class="odd-btn locked"><span class="label">Ничья</span><span class="val">${g.p_score === g.d_score ? '9.3' : '-'}</span></button>
+                        <button class="odd-btn locked"><span class="label">П2</span><span class="val">${g.d_score > g.p_score ? '2.09' : '-'}</span></button>
+                        <button class="odd-btn locked"><span class="label">Тотал</span><span class="val">+122</span></button>
+                    `;
+                } else {
+                    oddsHtml = `
+                        <button class="odd-btn" onclick="openBet('${g.id}', ${g.num}, 'П1', 2.14)"><span class="label">П1</span><span class="val">2.14</span></button>
+                        <button class="odd-btn" onclick="openBet('${g.id}', ${g.num}, 'Ничья', 9.3)"><span class="label">Ничья</span><span class="val">9.3</span></button>
+                        <button class="odd-btn" onclick="openBet('${g.id}', ${g.num}, 'П2', 2.09)"><span class="label">П2</span><span class="val">2.09</span></button>
+                        <button class="odd-btn" onclick="openBet('${g.id}', ${g.num}, 'Тотал', 1.9)"><span class="label">Тотал</span><span class="val">+122</span></button>
                     `;
                 }
 
                 div.innerHTML = `
-                    <div class="card-top">
-                        <div><i class="fa-solid fa-diamond" style="color: #f6a800;"></i> Бакара</div>
-                        <div>${statusBadge} ${statusText}</div>
+                    <div class="card-header">
+                        ${headerHtml}
                     </div>
                     <div class="teams">
                         <div class="team-row">
@@ -203,9 +221,8 @@
                             <div class="team-score">${g.d_score}</div>
                         </div>
                     </div>
-                    ${playerCards}
+                    ${cardsHtml}
                     <div class="game-num">${g.num}</div>
-                    ${timerText}
                     <div class="odds-row">
                         ${oddsHtml}
                     </div>
@@ -214,13 +231,20 @@
             });
         }
 
-        function openBetModal(gameId, gameNum) {
+        function openBet(gameId, gameNum, market, coef) {
             if (gameId.startsWith('virtual_')) {
-                // Если игра виртуальная, разрешаем ставить (для демо)
-                // Но по факту она еще не началась, поэтому можно просто показать модалку
+                // Для виртуальных игр ставку можно сделать, но лучше разрешить только на реальные
+                alert('Дождитесь начала игры (карты еще не раздали).');
+                return;
             }
             currentGameId = gameId;
+            currentMarket = market;
+            currentCoef = coef;
+            
             document.getElementById('modal-game').innerText = `Игра #${gameNum}`;
+            document.getElementById('modal-market').innerText = market;
+            document.getElementById('modal-coef').innerText = coef;
+            
             document.getElementById('bet-modal').classList.add('active');
             document.getElementById('overlay').classList.add('active');
         }
@@ -251,9 +275,11 @@
             }
         }
 
+        // Инициализация
         loadUser();
         loadGames();
-        setInterval(loadGames, 2000);
+        // Обновляем данные с сервера каждые 5 секунд (чтобы не сбивать таймеры слишком часто)
+        setInterval(loadGames, 5000);
     </script>
 </body>
 </html>
