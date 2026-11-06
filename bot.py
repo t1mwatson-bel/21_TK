@@ -10,17 +10,17 @@ import pytz
 # =====================================================================
 
 MOSCOW_TZ = pytz.timezone("Europe/Moscow")
-BASE_URL = "https://1xlite-1679.pro"
+# ТВОЕ АКТУАЛЬНОЕ ЗЕРКАЛО:
+BASE_URL = "https://exhvtetrdaaw.top" 
 GAME_NUMBERS_FILE = "game_numbers.json"
 LIVE_GAMES_FILE = "live_games.json"
 
 game_numbers = {}
-processed_games = set()
-active_games_cache = {}
 
 SUITS_NAMES = {0: "♠️", 1: "♣️", 2: "♦️", 3: "♥️"}
 RANKS = {1: "A", 2: "2", 3: "3", 4: "4", 5: "5", 6: "6", 7: "7", 8: "8", 9: "9", 10: "10", 11: "J", 12: "Q", 13: "K", 14: "A"}
 
+# Не забудь обновить куки, если они протухнут!
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
     "Accept": "application/json, text/plain, */*",
@@ -128,7 +128,7 @@ def update_live_json():
     
     result.sort(key=lambda x: x["num"], reverse=True)
     
-    # Сохраняем в формате, который ждет сайт
+    # Сохраняем в формате для сайта
     final_data = {
         "last_game_num": result[0]["num"] if result else 0,
         "updated_at": time.time(),
@@ -138,9 +138,6 @@ def update_live_json():
     with open(LIVE_GAMES_FILE, "w", encoding="utf-8") as f:
         json.dump(final_data, f, ensure_ascii=False, indent=2)
 
-# =====================================================================
-# ГЛАВНАЯ ФУНКЦИЯ ДЛЯ ЗАПУСКА ИЗ APP.PY
-# =====================================================================
 def main():
     load_game_numbers()
     print("🔄 СБОРЩИК ДАННЫХ ДЛЯ САЙТА ЗАПУЩЕН", flush=True)
