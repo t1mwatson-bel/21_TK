@@ -51,7 +51,6 @@
         .odd-btn:hover { background: #e0e4eb; }
         .odd-btn .label { font-size: 11px; color: #777; margin-bottom: 2px; }
         .odd-btn .val { font-size: 15px; font-weight: bold; color: #1a1a1a; }
-        .odd-btn .val.orange { color: #f6a800; }
         .odd-btn.locked { opacity: 0.5; cursor: not-allowed; }
 
         /* НИЖНЯЯ ПАНЕЛЬ (КУПОН) */
@@ -125,10 +124,6 @@
     <script>
         let currentBalance = 0;
         let currentGameId = null;
-        let currentMarket = "";
-        let currentCoef = 0;
-        
-        // Хранилище таймеров
         let timers = {};
 
         async function loadUser() {
@@ -145,7 +140,7 @@
             return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
         }
 
-        // Тик таймеров каждую секунду
+        // Тик таймеров
         setInterval(() => {
             for (let id in timers) {
                 if (timers[id] > 0) {
@@ -160,10 +155,8 @@
             const res = await fetch('/api/games');
             const games = await res.json();
             const container = document.getElementById('games-container');
-            
-            // Очищаем контейнер
             container.innerHTML = '';
-            timers = {}; // Сбрасываем таймеры перед новой отрисовкой
+            timers = {}; 
 
             games.forEach(g => {
                 const div = document.createElement('div');
@@ -171,25 +164,23 @@
                 
                 let headerHtml = '';
                 if (g.is_virtual) {
-                    timers[g.id] = g.time_left; // Запоминаем время
+                    timers[g.id] = g.time_left; 
                     headerHtml = `
                         <div class="timer-display" id="timer_${g.id}">${formatTime(g.time_left)}</div>
                         <span class="live-badge">LIVE</span>
                     `;
                 } else {
                     headerHtml = `
-                        <div class="timer-display">${g.is_finished ? 'Игра завершена' : 'Событие идет'}</div>
+                        <div class="timer-display">${g.is_finished ? 'Завершено' : 'Событие идет'}</div>
                         <span class="live-badge">LIVE</span>
                     `;
                 }
 
-                // Карты, если есть
                 let cardsHtml = '';
                 if (g.p_cards && g.p_cards.length > 0) {
                     cardsHtml = `<div style="font-size: 13px; color: #555; margin-bottom: 10px; font-weight: 500;">Карты: ${g.p_cards.join(' ')}</div>`;
                 }
 
-                // Рынки
                 let oddsHtml = '';
                 if (g.is_finished) {
                     oddsHtml = `
@@ -233,14 +224,10 @@
 
         function openBet(gameId, gameNum, market, coef) {
             if (gameId.startsWith('virtual_')) {
-                // Для виртуальных игр ставку можно сделать, но лучше разрешить только на реальные
                 alert('Дождитесь начала игры (карты еще не раздали).');
                 return;
             }
             currentGameId = gameId;
-            currentMarket = market;
-            currentCoef = coef;
-            
             document.getElementById('modal-game').innerText = `Игра #${gameNum}`;
             document.getElementById('modal-market').innerText = market;
             document.getElementById('modal-coef').innerText = coef;
@@ -275,10 +262,9 @@
             }
         }
 
-        // Инициализация
         loadUser();
         loadGames();
-        // Обновляем данные с сервера каждые 5 секунд (чтобы не сбивать таймеры слишком часто)
+        // Обновляем данные с сервера раз в 5 секунд, чтобы не сбивать таймеры
         setInterval(loadGames, 5000);
     </script>
 </body>
