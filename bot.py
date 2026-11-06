@@ -69,7 +69,7 @@ def format_cards(cards):
         suit = SUITS_NAMES.get(c.get("S", 0), "?")
         rank = RANKS.get(c.get("R", 0), str(c.get("R", 0)))
         res.append(f"{rank}{suit}")
-    return res # Возвращаем массив строк для сайта
+    return res
 
 def calculate_score(cards):
     score = 0
@@ -113,7 +113,6 @@ def update_live_json():
         state = str(main_stat.get("S", "")).lower()
         is_finished = state in ("win1", "win2", "draw", "finished", "gameover", "endgame", "result", "resultgame", "completed")
         
-        # Формируем объект для сайта
         game_data = {
             "id": game_id,
             "num": game_num,
@@ -127,14 +126,15 @@ def update_live_json():
         
         result.append(game_data)
     
-    # Сортируем по номеру игры
     result.sort(key=lambda x: x["num"], reverse=True)
     
-    # Сохраняем для сайта
     with open(LIVE_GAMES_FILE, "w", encoding="utf-8") as f:
         json.dump(result, f, ensure_ascii=False, indent=2)
 
-if __name__ == "__main__":
+# =====================================================================
+# ГЛАВНАЯ ФУНКЦИЯ ДЛЯ ЗАПУСКА ИЗ APP.PY
+# =====================================================================
+def main():
     load_game_numbers()
     print("🔄 СБОРЩИК ДАННЫХ ДЛЯ САЙТА ЗАПУЩЕН", flush=True)
     while True:
@@ -142,5 +142,8 @@ if __name__ == "__main__":
             update_live_json()
             time.sleep(2)
         except Exception as e:
-            print(f"❌ Ошибка: {e}")
+            print(f"❌ Ошибка в сборщике: {e}", flush=True)
             time.sleep(5)
+
+if __name__ == "__main__":
+    main()
