@@ -24,7 +24,6 @@ def api_games():
         with open(LIVE_GAMES_FILE, "r", encoding="utf-8") as f:
             data = json.load(f)
             
-        # Поддержка старого и нового формата
         if isinstance(data, list):
             real_games = data
             last_num = real_games[0]["num"] if real_games else 0
@@ -34,25 +33,21 @@ def api_games():
             last_num = data.get("last_game_num", 0)
             updated_at = data.get("updated_at", time.time())
 
-        # Сортируем реальные игры по возрастанию (чтобы 1410 была выше 1411)
-        real_games.sort(key=lambda x: x["num"])
-
-        # 1. Берем последнюю реальную игру (активную)
+        # Ищем текущую активную игру (не завершенную)
         active_game = None
-        for g in reversed(real_games):
+        for g in real_games:
             if not g["is_finished"]:
                 active_game = g
                 break
         
-        # Если активной нет (все завершены), берем самую последнюю
+        # Если активной нет, берем последнюю завершенную
         if not active_game and real_games:
-            active_game = real_games[-1]
+            active_game = real_games[0]
 
         result_games = []
         now = time.time()
         base_num = last_num
 
-        # 2. Добавляем активную игру (если есть)
         if active_game:
             active_game["is_virtual"] = False
             active_game["time_left"] = 0
@@ -60,16 +55,11 @@ def api_games():
             result_games.append(active_game)
             base_num = max(base_num, active_game["num"])
 
-        # 3. Генерируем будущие игры (виртуальные) по возрастанию
+        # Генерируем 4 будущие игры
         for i in range(1, 5):
             future_num = base_num + i
-            # Вычисляем таймер (каждую минуту новая игра)
-            # Имитируем, что игра начнется через 60 секунд от последнего обновления
             elapsed = now - updated_at
-            # Базовый таймер для первой виртуальной игры
             base_time_left = 60 - (elapsed % 60) 
-            
-            # Для каждой следующей прибавляем по 60 секунд
             time_left = int(base_time_left + (i - 1) * 60)
             
             result_games.append({
