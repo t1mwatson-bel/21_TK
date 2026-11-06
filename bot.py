@@ -128,8 +128,15 @@ def update_live_json():
     
     result.sort(key=lambda x: x["num"], reverse=True)
     
+    # Сохраняем в формате, который ждет сайт
+    final_data = {
+        "last_game_num": result[0]["num"] if result else 0,
+        "updated_at": time.time(),
+        "games": result
+    }
+    
     with open(LIVE_GAMES_FILE, "w", encoding="utf-8") as f:
-        json.dump(result, f, ensure_ascii=False, indent=2)
+        json.dump(final_data, f, ensure_ascii=False, indent=2)
 
 # =====================================================================
 # ГЛАВНАЯ ФУНКЦИЯ ДЛЯ ЗАПУСКА ИЗ APP.PY
