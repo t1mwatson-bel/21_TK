@@ -13,6 +13,7 @@ from config import (
     DOGON_GAMES, SEND_BEFORE_TARGET, PREDICTION_TIMEOUT_MINUTES,
     CLEANUP_HOUR, CLEANUP_MINUTE,
     MAX_GAMES_CACHE, MAX_PREDICTIONS_STORED, MOSCOW_TZ,
+    START_BET,
 )
 
 from parsers import (
@@ -57,6 +58,11 @@ pending_games = {}
 predictions = []
 last_cleanup_date = None
 
+# --- очистка predictions.json ---
+last_predictions_cleanup = None
+PREDICTIONS_RETENTION_HOURS = 48
+PREDICTIONS_CLEANUP_INTERVAL_HOURS = 48
+
 
 # =====================================================================
 # ОЧИСТКА
@@ -85,6 +91,67 @@ def cleanup_nightly():
     last_cleanup_date = datetime.now(MOSCOW_TZ).date()
 
     print("✅ Готово\n", flush=True)
+
+
+# =====================================================================
+# ОЧИСТКА PREDICTIONS.JSON (раз в 48 часов, старше 48 часов)
+# =====================================================================
+
+def should_cleanup_predictions_now(now=None):
+    global last_predictions_cleanup
+
+    if now is None:
+        now = datetime.now(MOSCOW_TZ)
+
+    if last_predictions_cleanup is None:
+        return True
+
+    return (now - last_predictions_cleanup) >= timedelta(
+        hours=PREDICTIONS_CLEANUP_INTERVAL_HOURS
+    )
+
+
+def cleanup_old_predictions():
+    global predictions, last_predictions_cleanup
+
+    now = datetime.now(MOSCOW_TZ)
+    cutoff = now - timedelta(hours=PREDICTIONS_RETENTION_HOURS)
+
+    kept = []
+    removed = 0
+
+    for p in predictions:
+        if p.get("status") == "pending":
+            kept.append(p)
+            continue
+
+        ts_str = p.get("closed_at") or p.get("created_at")
+
+        if not ts_str:
+            kept.append(p)
+            continue
+
+        try:
+            ts = datetime.fromisoformat(ts_str)
+        except Exception:
+            kept.append(p)
+            continue
+
+        if ts >= cutoff:
+            kept.append(p)
+        else:
+            removed += 1
+
+    predictions = kept
+    last_predictions_cleanup = now
+
+    if removed:
+        save_predictions()
+
+    print(
+        f"🧹 Очистка прогнозов: удалено {removed}, осталось {len(predictions)}",
+        flush=True
+    )
 
 
 # =====================================================================
@@ -150,7 +217,7 @@ def make_result_message(p, result):
 
 
 # =====================================================================
-# АКТИВНЫЙ ПРОГНОЗ
+# АКТИВНЫЙ ПРОГНОЗ (используется только для информации)
 # =====================================================================
 
 def has_active_prediction():
@@ -162,13 +229,45 @@ def has_active_prediction():
 
 
 # =====================================================================
-# СОЗДАНИЕ ПРОГНОЗА
+# ЭФФЕКТИВНАЯ БАЗОВАЯ СТАВКА
+# =====================================================================
+# Если есть незакрытые серии, базовая ставка нового прогноза
+# должна продолжать самую глубокую из них, а не брать "сырой"
+# get_current_bet() (который равен START_BET, пока серия не закрыта).
+
+def get_effective_base_bet():
+    base = get_current_bet()
+
+    # Смотрим на все незакрытые прогнозы и берём самый глубокий догон
+    max_dogon = 0
+    max_base = None
+
+    for p in predictions:
+        if p.get("status") != "pending":
+            continue
+
+        try:
+            d = int(p.get("dogon", 0))
+        except (TypeError, ValueError):
+            continue
+
+        if d > max_dogon:
+            max_dogon = d
+            max_base = p.get("base_bet")
+
+    if max_dogon > 0 and max_base:
+        # Ставка Д(max_dogon) = max_base * 2.5^max_dogon
+        # Следующий прогноз должен стартовать с этой же ставки как base_bet
+        return round(float(max_base) * (2.5 ** max_dogon), 2)
+
+    return base
+
+
+# =====================================================================
+# СОЗДАНИЕ ПРОГНОЗА (без блокировки — каждый триггер работает)
 # =====================================================================
 
 def create_prediction(game):
-    if has_active_prediction():
-        return None
-
     trigger = find_trigger(game)
 
     if not trigger:
@@ -176,7 +275,16 @@ def create_prediction(game):
 
     target = trigger["target_number"]
     suit = trigger["predicted_suit"]
-    base_bet = get_current_bet()
+
+    # Защита от дублей: если на эту цель уже есть прогноз — не создаём
+    for p in predictions:
+        if (
+            p.get("target_number") == target
+            and p.get("status") == "pending"
+        ):
+            return None
+
+    base_bet = get_effective_base_bet()
 
     prediction = {
         "algorithm": "player_first_card_trigger",
@@ -207,6 +315,7 @@ def create_prediction(game):
         f"\n🔮 ПРОГНОЗ: #N{target} {suit} "
         f"(триггер #N{trigger['trigger_number']} "
         f"{trigger['trigger_card']}, "
+        f"ставка {base_bet} ₽, "
         f"отправка от #N{prediction['send_at_game']})",
         flush=True
     )
@@ -321,7 +430,7 @@ def check_predictions():
 
         base_bet = p.get("base_bet", p.get("bet", 0))
 
-        # Проверка Д0–Д3
+        # Проверка Д0–Д3 (или Д0–Д4 при DOGON_GAMES=4)
         for dogon in range(0, DOGON_GAMES + 1):
             gnum = add_game_offset(target, dogon)
             g = games_cache.get(gnum)
@@ -395,7 +504,6 @@ def check_predictions():
                 make_result_message(p, "lose")
             )
 
-        # Передаём базовую ставку Д0, а не сумму серии
         apply_lose(p, base_bet)
 
         print(
@@ -511,7 +619,12 @@ def main():
         f"⏰ Таймаут: {PREDICTION_TIMEOUT_MINUTES} мин от создания",
         flush=True
     )
-    print("🔒 Один активный прогноз", flush=True)
+    print("🔓 Без блокировки: каждый триггер работает", flush=True)
+    print(
+        f"🧹 Очистка прогнозов: раз в {PREDICTIONS_CLEANUP_INTERVAL_HOURS} ч, "
+        f"хранить {PREDICTIONS_RETENTION_HOURS} ч",
+        flush=True
+    )
     print("==================================================", flush=True)
 
     delete_webhook()
@@ -530,6 +643,9 @@ def main():
         try:
             if should_cleanup_now():
                 cleanup_nightly()
+
+            if should_cleanup_predictions_now():
+                cleanup_old_predictions()
 
             offset = process_telegram_updates(
                 offset,
