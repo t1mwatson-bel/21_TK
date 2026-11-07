@@ -57,11 +57,6 @@ pending_games = {}
 predictions = []
 last_cleanup_date = None
 
-# --- очистка predictions.json ---
-last_predictions_cleanup = None
-PREDICTIONS_RETENTION_HOURS = 48
-PREDICTIONS_CLEANUP_INTERVAL_HOURS = 48
-
 
 # =====================================================================
 # ОЧИСТКА
@@ -90,68 +85,6 @@ def cleanup_nightly():
     last_cleanup_date = datetime.now(MOSCOW_TZ).date()
 
     print("✅ Готово\n", flush=True)
-
-
-# =====================================================================
-# ОЧИСТКА PREDICTIONS.JSON (раз в 48 часов, старше 48 часов)
-# =====================================================================
-
-def should_cleanup_predictions_now(now=None):
-    global last_predictions_cleanup
-
-    if now is None:
-        now = datetime.now(MOSCOW_TZ)
-
-    if last_predictions_cleanup is None:
-        return True
-
-    return (now - last_predictions_cleanup) >= timedelta(
-        hours=PREDICTIONS_CLEANUP_INTERVAL_HOURS
-    )
-
-
-def cleanup_old_predictions():
-    global predictions, last_predictions_cleanup
-
-    now = datetime.now(MOSCOW_TZ)
-    cutoff = now - timedelta(hours=PREDICTIONS_RETENTION_HOURS)
-
-    kept = []
-    removed = 0
-
-    for p in predictions:
-        # pending не трогаем никогда — иначе потеряем активные прогнозы
-        if p.get("status") == "pending":
-            kept.append(p)
-            continue
-
-        ts_str = p.get("closed_at") or p.get("created_at")
-
-        if not ts_str:
-            kept.append(p)
-            continue
-
-        try:
-            ts = datetime.fromisoformat(ts_str)
-        except Exception:
-            kept.append(p)
-            continue
-
-        if ts >= cutoff:
-            kept.append(p)
-        else:
-            removed += 1
-
-    predictions = kept
-    last_predictions_cleanup = now
-
-    if removed:
-        save_predictions()
-
-    print(
-        f"🧹 Очистка прогнозов: удалено {removed}, осталось {len(predictions)}",
-        flush=True
-    )
 
 
 # =====================================================================
@@ -579,11 +512,6 @@ def main():
         flush=True
     )
     print("🔒 Один активный прогноз", flush=True)
-    print(
-        f"🧹 Очистка прогнозов: раз в {PREDICTIONS_CLEANUP_INTERVAL_HOURS} ч, "
-        f"хранить {PREDICTIONS_RETENTION_HOURS} ч",
-        flush=True
-    )
     print("==================================================", flush=True)
 
     delete_webhook()
@@ -602,9 +530,6 @@ def main():
         try:
             if should_cleanup_now():
                 cleanup_nightly()
-
-            if should_cleanup_predictions_now():
-                cleanup_old_predictions()
 
             offset = process_telegram_updates(
                 offset,
