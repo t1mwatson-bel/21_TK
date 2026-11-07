@@ -62,6 +62,7 @@ def get_dogon_stats(predictions):
         1: {"played": 0, "wins": 0},
         2: {"played": 0, "wins": 0},
         3: {"played": 0, "wins": 0},
+        4: {"played": 0, "wins": 0},
     }
 
     for p in predictions:
