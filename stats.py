@@ -18,8 +18,6 @@ def get_predictions_summary(predictions):
     total = 0
     wins = 0
     loses = 0
-    returns = 0
-    pending = 0
 
     for p in predictions:
 
@@ -33,12 +31,6 @@ def get_predictions_summary(predictions):
             total += 1
             loses += 1
 
-        elif status in ("return", "void", "expired"):
-            returns += 1
-
-        elif status == "pending":
-            pending += 1
-
     winrate = (
         round(wins / total * 100, 1)
         if total else 0.0
@@ -50,8 +42,6 @@ def get_predictions_summary(predictions):
         "total": total,
         "wins": wins,
         "loses": loses,
-        "returns": returns,
-        "pending": pending,
         "winrate": winrate,
         "profit": bank["profit"],
         "roi": bank["roi"],
@@ -88,16 +78,13 @@ def get_dogon_stats(predictions):
             if dogon not in stats:
                 continue
 
-            # Все попытки до выигрышного догона сыграны
             for d in range(dogon + 1):
                 stats[d]["played"] += 1
 
-            # Выигрыш засчитываем на конкретном догоне
             stats[dogon]["wins"] += 1
 
         elif status == "lose":
 
-            # Проигранная серия прошла все четыре догона
             for d in stats:
                 stats[d]["played"] += 1
 
@@ -244,14 +231,19 @@ def get_daily_stats(predictions, limit_days=30):
 
 
 # ============================================================
-# ПОСЛЕДНИЕ ПРОГНОЗЫ
+# ПОСЛЕДНИЕ ПРОГНОЗЫ — ТОЛЬКО ЗАКРЫТЫЕ
 # ============================================================
 
 def get_last_predictions(predictions, limit=30):
 
+    closed = [
+        p for p in predictions
+        if p.get("status") in ("win", "lose")
+    ]
+
     result = []
 
-    for p in predictions[-limit:][::-1]:
+    for p in closed[-limit:][::-1]:
 
         result.append({
             "target": p.get("target_number"),
@@ -268,6 +260,69 @@ def get_last_predictions(predictions, limit=30):
 
 
 # ============================================================
+# ПРИРОСТ БАЛАНСА ПО ДНЯМ
+# ============================================================
+
+def get_profit_daily(predictions, coefficient=1.9):
+    """
+    Возвращает накопительный баланс по дням на основе
+    закрытых прогнозов (win / lose).
+
+    win  -> + bet * (coefficient - 1)
+    lose -> - bet
+    """
+
+    daily_delta = {}
+
+    for p in predictions:
+
+        status = p.get("status")
+
+        if status not in ("win", "lose"):
+            continue
+
+        closed = p.get("closed_at") or p.get("created_at")
+
+        if not closed:
+            continue
+
+        try:
+            dt = datetime.fromisoformat(closed)
+            day = dt.strftime("%Y-%m-%d")
+        except Exception:
+            continue
+
+        bet = p.get("bet", 0) or 0
+
+        try:
+            bet = float(bet)
+        except (TypeError, ValueError):
+            bet = 0.0
+
+        if status == "win":
+            delta = bet * (coefficient - 1)
+        else:
+            delta = -bet
+
+        daily_delta[day] = daily_delta.get(day, 0.0) + delta
+
+    result = []
+    total = 0.0
+
+    for day in sorted(daily_delta.keys()):
+
+        total += daily_delta[day]
+
+        result.append({
+            "date": day,
+            "delta": round(daily_delta[day], 2),
+            "total": round(total, 2),
+        })
+
+    return result
+
+
+# ============================================================
 # ПОЛНАЯ СТАТИСТИКА ДЛЯ САЙТА
 # ============================================================
 
@@ -278,6 +333,7 @@ def get_full_stats(predictions):
         "dogons": get_dogon_stats(predictions),
         "suits": get_suit_stats(predictions),
         "daily": get_daily_stats(predictions),
+        "profit_daily": get_profit_daily(predictions),
         "last": get_last_predictions(predictions, 30),
         "updated_at": datetime.now(MOSCOW_TZ).isoformat(),
     }
