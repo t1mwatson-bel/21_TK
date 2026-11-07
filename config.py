@@ -40,7 +40,7 @@ TARGET_OFFSET = 10
 SEND_BEFORE_TARGET = 4
 
 # Догоны после целевой игры
-DOGON_GAMES = 3
+DOGON_GAMES = 4
 
 # Маппинг: первая карта игрока → масть прогноза
 # A и 10 — не триггерят
