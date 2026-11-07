@@ -60,14 +60,25 @@ def parse_game_message(text):
     }
 
 # =====================================================================
-# ТРИГГЕР: ПЕРВАЯ КАРТА ИГРОКА
+# ТРИГГЕР: ПЕРВАЯ КАРТА ИГРОКА (С ФИЛЬТРАМИ)
 # =====================================================================
 
 def find_trigger(game):
+    # --- ФИЛЬТР 1: Исключаем аномалии и ничьи (#R, #X) ---
+    raw_text = game.get("raw", "")
+    if "#R" in raw_text or "#X" in raw_text:
+        return None
+
     player = game.get("player_cards") or []
     if not player:
         return None
 
+    # --- ФИЛЬТР 2: Задвоение масти у игрока ---
+    suits = [suit for rank, suit in player]
+    if len(suits) != len(set(suits)):
+        return None  # Если есть дубликаты мастей — пропускаем
+
+    # --- ОСНОВНАЯ ЛОГИКА ТРИГГЕРА ---
     rank, suit = player[0]
     predicted_suit = TRIGGER_MAP.get(rank)
     if not predicted_suit:
