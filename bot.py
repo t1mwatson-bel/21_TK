@@ -154,9 +154,8 @@ def make_result_message(p, result):
 # АКТИВНЫЙ ПРОГНОЗ
 # =====================================================================
 
-def has_active_prediction():
-    for p in predictions:
-        if p.get("status") == "pending":
+def create_prediction(game):
+    trigger = find_trigger(game)
             return True
 
     return False
