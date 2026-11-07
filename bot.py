@@ -1,4 +1,3 @@
-
 # -*- coding: utf-8 -*-
 
 import os
@@ -151,11 +150,12 @@ def make_result_message(p, result):
 
 
 # =====================================================================
-# АКТИВНЫЙ ПРОГНОЗ
+# АКТИВНЫЙ ПРОГНОЗ (больше не блокирует создание новых)
 # =====================================================================
 
-def create_prediction(game):
-    trigger = find_trigger(game)
+def has_active_prediction():
+    for p in predictions:
+        if p.get("status") == "pending":
             return True
 
     return False
@@ -166,9 +166,6 @@ def create_prediction(game):
 # =====================================================================
 
 def create_prediction(game):
-    if has_active_prediction():
-        return None
-
     trigger = find_trigger(game)
 
     if not trigger:
@@ -511,7 +508,7 @@ def main():
         f"⏰ Таймаут: {PREDICTION_TIMEOUT_MINUTES} мин от создания",
         flush=True
     )
-    print("🔒 Один активный прогноз", flush=True)
+    print("🔓 Без блокировки активным прогнозом", flush=True)
     print("==================================================", flush=True)
 
     delete_webhook()
