@@ -6,6 +6,7 @@
 <title>OLD_GROUP — Статистика</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <style>
   :root {
     --bg: #05070d;
@@ -36,7 +37,6 @@
     overflow-x: hidden;
   }
 
-  /* Декоративные неоновые пятна */
   body::before, body::after {
     content: '';
     position: fixed;
@@ -182,6 +182,22 @@
     filter: drop-shadow(0 0 6px var(--neon-cyan));
   }
 
+  /* ===== CHART ===== */
+  .chart-wrap {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 14px;
+    backdrop-filter: blur(8px);
+    height: 320px;
+    position: relative;
+  }
+
+  .chart-wrap canvas {
+    width: 100% !important;
+    height: 100% !important;
+  }
+
   /* ===== TABLE ===== */
   .table {
     background: var(--panel);
@@ -302,6 +318,7 @@
     thead th { font-size: 10px; padding: 8px 6px; }
     tbody td { padding: 8px 6px; font-size: 12px; }
     .section-title { font-size: 12px; letter-spacing: 1.5px; }
+    .chart-wrap { height: 240px; }
   }
 
   @media (max-width: 380px) {
@@ -331,8 +348,15 @@
     <div class="card"><div class="card-label">Всего</div><div class="card-value" id="total">0</div></div>
     <div class="card"><div class="card-label">Плюсы</div><div class="card-value green" id="wins">0</div></div>
     <div class="card"><div class="card-label">Минусы</div><div class="card-value red" id="loses">0</div></div>
-    <div class="card"><div class="card-label">В ожидании</div><div class="card-value yellow" id="pending">0</div></div>
     <div class="card"><div class="card-label">Текущая ставка</div><div class="card-value cyan" id="currentBet">— ₽</div></div>
+  </div>
+
+  <!-- ГРАФИК ПРИРОСТА БАЛАНСА -->
+  <div class="section">
+    <div class="section-title"><span class="icon">📈</span> ПРИРОСТ БАЛАНСА ПО ДНЯМ</div>
+    <div class="chart-wrap">
+      <canvas id="profitChart"></canvas>
+    </div>
   </div>
 
   <!-- ПО ДОГОНАМ -->
@@ -436,7 +460,7 @@
 
 <script>
   // ============================================================
-  // ОБНОВЛЕНИЕ ДАННЫХ
+  // ФОРМАТИРОВАНИЕ
   // ============================================================
 
   function fmtMoney(v) {
@@ -475,6 +499,106 @@
     return s || '—';
   }
 
+  // ============================================================
+  // ГРАФИК
+  // ============================================================
+
+  let profitChart = null;
+
+  function renderProfitChart(profitDaily) {
+    const canvas = document.getElementById('profitChart');
+    if (!canvas) return;
+
+    const points = Array.isArray(profitDaily) ? profitDaily : [];
+    const labels = points.map(x => x.date);
+    const totals = points.map(x => x.total);
+
+    // Если данных нет — показываем пустой график с подписью
+    if (!labels.length) {
+      if (profitChart) {
+        profitChart.destroy();
+        profitChart = null;
+      }
+      return;
+    }
+
+    if (profitChart) {
+      profitChart.data.labels = labels;
+      profitChart.data.datasets[0].data = totals;
+      profitChart.update('none');
+      return;
+    }
+
+    const ctx = canvas.getContext('2d');
+
+    const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height || 300);
+    gradient.addColorStop(0, 'rgba(0, 255, 240, 0.35)');
+    gradient.addColorStop(1, 'rgba(0, 212, 255, 0.02)');
+
+    profitChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: 'Баланс по дням, ₽',
+          data: totals,
+          borderColor: '#00fff0',
+          backgroundColor: gradient,
+          borderWidth: 2,
+          pointBackgroundColor: '#00d4ff',
+          pointBorderColor: '#001018',
+          pointRadius: 3,
+          pointHoverRadius: 5,
+          tension: 0.25,
+          fill: true,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: {
+            labels: {
+              color: '#dbe7ff',
+              font: { family: 'Rajdhani', size: 13, weight: '600' }
+            }
+          },
+          tooltip: {
+            callbacks: {
+              label: (c) => {
+                const v = Number(c.parsed.y) || 0;
+                const sign = v > 0 ? '+' : '';
+                return `Баланс: ${sign}${v.toLocaleString('ru-RU', { maximumFractionDigits: 2 })} ₽`;
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            ticks: {
+              color: '#7d8bb0',
+              font: { family: 'Rajdhani', size: 11 }
+            },
+            grid: { color: 'rgba(0, 212, 255, 0.08)' }
+          },
+          y: {
+            ticks: {
+              color: '#7d8bb0',
+              font: { family: 'Rajdhani', size: 11 },
+              callback: (v) => Number(v).toLocaleString('ru-RU')
+            },
+            grid: { color: 'rgba(0, 212, 255, 0.08)' }
+          }
+        }
+      }
+    });
+  }
+
+  // ============================================================
+  // ОБНОВЛЕНИЕ ДАННЫХ
+  // ============================================================
+
   async function loadStats() {
     try {
       const r = await fetch('/api/stats?t=' + Date.now());
@@ -502,7 +626,6 @@
       document.getElementById('total').textContent = s.total || 0;
       document.getElementById('wins').textContent = s.wins || 0;
       document.getElementById('loses').textContent = s.loses || 0;
-      document.getElementById('pending').textContent = s.pending || 0;
       document.getElementById('currentBet').textContent = fmtMoney(s.current_bet);
 
       // ---- DOGONS ----
@@ -563,11 +686,15 @@
         dailyBody.innerHTML = '<tr><td colspan="5" class="dim-text">Нет данных</td></tr>';
       }
 
-      // ---- LAST ----
+      // ---- LAST (только win / lose) ----
       const lastBody = document.getElementById('lastBody');
       lastBody.innerHTML = '';
 
-      (data.last || []).forEach(p => {
+      const closedOnly = (data.last || []).filter(
+        p => p.status === 'win' || p.status === 'lose'
+      );
+
+      closedOnly.forEach(p => {
         const tr = document.createElement('tr');
         const st = p.status || '';
         const dogonText = (p.dogon === null || p.dogon === undefined) ? '—' : ('Д' + p.dogon);
@@ -584,9 +711,12 @@
         lastBody.appendChild(tr);
       });
 
-      if (!(data.last || []).length) {
+      if (!closedOnly.length) {
         lastBody.innerHTML = '<tr><td colspan="6" class="dim-text">Нет данных</td></tr>';
       }
+
+      // ---- CHART ----
+      renderProfitChart(data.profit_daily);
 
       // ---- TIME ----
       if (data.updated_at) {
@@ -600,7 +730,6 @@
     }
   }
 
-  // Первая загрузка + авто-обновление каждые 10 секунд
   loadStats();
   setInterval(loadStats, 10000);
 </script>
