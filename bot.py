@@ -59,8 +59,8 @@ last_cleanup_date = None
 
 # --- очистка predictions.json ---
 last_predictions_cleanup = None
-PREDICTIONS_RETENTION_HOURS = 48          # хранить записи не дольше 48 часов
-PREDICTIONS_CLEANUP_INTERVAL_HOURS = 48   # запускать очистку не чаще раза в 48 часов
+PREDICTIONS_RETENTION_HOURS = 48
+PREDICTIONS_CLEANUP_INTERVAL_HOURS = 48
 
 
 # =====================================================================
@@ -217,7 +217,7 @@ def make_result_message(p, result):
 
 
 # =====================================================================
-# АКТИВНЫЙ ПРОГНОЗ (больше не блокирует создание новых)
+# АКТИВНЫЙ ПРОГНОЗ
 # =====================================================================
 
 def has_active_prediction():
@@ -233,6 +233,9 @@ def has_active_prediction():
 # =====================================================================
 
 def create_prediction(game):
+    if has_active_prediction():
+        return None
+
     trigger = find_trigger(game)
 
     if not trigger:
@@ -575,7 +578,7 @@ def main():
         f"⏰ Таймаут: {PREDICTION_TIMEOUT_MINUTES} мин от создания",
         flush=True
     )
-    print("🔓 Без блокировки активным прогнозом", flush=True)
+    print("🔒 Один активный прогноз", flush=True)
     print(
         f"🧹 Очистка прогнозов: раз в {PREDICTIONS_CLEANUP_INTERVAL_HOURS} ч, "
         f"хранить {PREDICTIONS_RETENTION_HOURS} ч",
