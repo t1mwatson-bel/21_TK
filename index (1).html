@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+>
+
+<title>21 — Статистика рангов</title>
+
+<style>
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+
+    margin: 0;
+
+    font-family:
+        Inter,
+        Arial,
+        sans-serif;
+
+    background:
+        radial-gradient(
+            circle at top,
+            #101828 0%,
+            #06090f 45%,
+            #03050a 100%
+        );
+
+    color: #ffffff;
+
+    min-height: 100vh;
+}
+
+/* =========================================================
+   HEADER (с неоном)
+========================================================= */
+
+.header {
+    padding: 30px 20px 20px;
+    text-align: center;
+}
+
+.logo {
+    font-size: 32px;
+    font-weight: 900;
+    letter-spacing: 3px;
+    color: #ffffff;
+    text-shadow:
+        0 0 10px rgba(0, 255, 200, .6),
+        0 0 20px rgba(0, 200, 255, .5),
+        0 0 40px rgba(120, 100, 255, .5);
+}
+
+/* =========================================================
+   CONTAINER
+========================================================= */
+
+.container {
+    width: min(1400px, calc(100% - 30px));
+    margin: auto;
+    padding-bottom: 50px;
+}
+
+/* =========================================================
+   CARDS
+========================================================= */
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 15px;
+    margin-bottom: 25px;
+}
+
+.card {
+    background: linear-gradient(145deg, rgba(20, 30, 50, .65), rgba(10, 15, 25, .45));
+    border: 1px solid rgba(0, 200, 255, .15);
+    border-radius: 18px;
+    padding: 22px;
+    box-shadow: 0 0 15px rgba(0, 200, 255, .08), 0 10px 30px rgba(0, 0, 0, .45);
+    backdrop-filter: blur(10px);
+}
+
+.card-title {
+    color: #8995a8;
+    font-size: 13px;
+    margin-bottom: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.card-value {
+    font-size: 32px;
+    font-weight: 800;
+    text-shadow: 0 0 8px currentColor;
+}
+
+.green { color: #4cff9b; text-shadow: 0 0 12px rgba(76, 255, 155, .7); }
+.red { color: #ff5d70; text-shadow: 0 0 12px rgba(255, 93, 112, .7); }
+.blue { color: #65aaff; text-shadow: 0 0 12px rgba(101, 170, 255, .7); }
+.orange { color: #ffbd66; text-shadow: 0 0 12px rgba(255, 189, 102, .7); }
+
+/* =========================================================
+   BANK GRID
+========================================================= */
+
+.bank-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    margin-bottom: 25px;
+}
+
+.bank-card {
+    background: linear-gradient(145deg, rgba(0, 255, 200, .08), rgba(0, 100, 255, .04));
+    border: 1px solid rgba(0, 255, 200, .25);
+    border-radius: 18px;
+    padding: 22px;
+    box-shadow: 0 0 20px rgba(0, 255, 200, .12), 0 10px 30px rgba(0, 0, 0, .4);
+    backdrop-filter: blur(10px);
+}
+
+.bank-title {
+    color: #7affd9;
+    font-size: 13px;
+    margin-bottom: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+}
+
+.bank-value {
+    font-size: 34px;
+    font-weight: 900;
+    color: #ffffff;
+    text-shadow: 0 0 10px rgba(0, 255, 200, .8), 0 0 25px rgba(0, 255, 200, .4);
+}
+
+.bank-value.profit-positive { color: #4cff9b; }
+.bank-value.profit-negative { color: #ff5d70; }
+
+.bank-sub {
+    margin-top: 6px;
+    color: #7e8ba0;
+    font-size: 12px;
+    letter-spacing: .5px;
+}
+
+/* =========================================================
+   SECTION
+========================================================= */
+
+.section {
+    margin-top: 25px;
+    background: rgba(255, 255, 255, .03);
+    border: 1px solid rgba(0, 200, 255, .12);
+    border-radius: 20px;
+    padding: 22px;
+    overflow: hidden;
+    box-shadow: 0 0 20px rgba(0, 200, 255, .06);
+}
+
+.section-title {
+    font-size: 20px;
+    font-weight: 800;
+    margin-bottom: 18px;
+    text-shadow: 0 0 8px rgba(0, 255, 200, .5);
+}
+
+/* =========================================================
+   TABLE
+========================================================= */
+
+.table-wrapper { overflow-x: auto; }
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 600px;
+}
+
+th {
+    text-align: left;
+    color: #7e8ba0;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding: 13px;
+    border-bottom: 1px solid rgba(0, 200, 255, .15);
+}
+
+td {
+    padding: 14px 13px;
+    border-bottom: 1px solid rgba(255, 255, 255, .05);
+    font-size: 14px;
+}
+
+.progress {
+    width: 120px;
+    height: 7px;
+    background: #1b2230;
+    border-radius: 20px;
+    overflow: hidden;
+}
+
+.progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #36e98d, #62ffb0);
+    border-radius: 20px;
+    box-shadow: 0 0 8px rgba(76, 255, 155, .6);
+}
+
+/* =========================================================
+   LATEST
+========================================================= */
+
+.latest {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 12px;
+}
+
+.latest-item {
+    background: rgba(0, 0, 0, .25);
+    padding: 15px;
+    border-radius: 13px;
+    border: 1px solid rgba(0, 200, 255, .08);
+}
+
+.latest-label { color: #7f8b9e; font-size: 12px; margin-bottom: 7px; }
+.latest-value { font-size: 19px; font-weight: 700; }
+
+/* =========================================================
+   CHART
+========================================================= */
+
+.chart {
+    height: 280px;
+    display: flex;
+    align-items: flex-end;
+    gap: 3px;
+    padding: 20px 5px 5px;
+    overflow-x: auto;
+}
+
+.bar {
+    min-width: 8px;
+    flex: 1;
+    max-width: 18px;
+    border-radius: 5px 5px 2px 2px;
+}
+
+.bar.hit { background: linear-gradient(180deg, #4cff9b, #16a96a); }
+.bar.miss { background: linear-gradient(180deg, #ff6478, #b92742); }
+
+/* =========================================================
+   ROLLING
+========================================================= */
+
+.rolling {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 15px;
+}
+
+.rolling-card {
+    background: rgba(0, 0, 0, .25);
+    border-radius: 15px;
+    padding: 20px;
+    text-align: center;
+    border: 1px solid rgba(0, 200, 255, .08);
+}
+
+.rolling-name { color: #8490a4; font-size: 13px; margin-bottom: 8px; }
+.rolling-value { font-size: 30px; font-weight: 900; }
+
+/* =========================================================
+   FOOTER
+========================================================= */
+
+.footer { text-align: center; color: #596577; font-size: 12px; padding: 25px 0; }
+
+.disclaimer {
+    margin-top: 15px;
+    color: #596577;
+    font-size: 11px;
+    line-height: 1.6;
+    max-width: 800px;
+    margin: auto;
+    padding: 0 20px;
+}
+
+.history-type-win { color: #4cff9b; font-weight: 700; }
+.history-type-lose { color: #ff5d70; font-weight: 700; }
+.history-type-return { color: #65aaff; font-weight: 700; }
+
+@media (max-width: 600px) {
+    .logo { font-size: 22px; letter-spacing: 1px; }
+    .container { width: calc(100% - 20px); }
+    .section { padding: 16px; }
+    .card-value { font-size: 27px; }
+    .bank-value { font-size: 26px; }
+}
+
+</style>
+
+</head>
+
+<body>
+
+<header class="header">
+    <div class="logo">21 — Статистика рангов</div>
+</header>
+
+<main class="container">
+
+    <!-- БАНК -->
+    <section class="section">
+        <div class="section-title">💰 Банк</div>
+        <div class="bank-grid">
+            <div class="bank-card">
+                <div class="bank-title">Баланс</div>
+                <div id="bank-balance" class="bank-value">—</div>
+                <div id="bank-start" class="bank-sub">Старт: —</div>
+            </div>
+            <div class="bank-card">
+                <div class="bank-title">Профит</div>
+                <div id="bank-profit" class="bank-value">—</div>
+                <div id="bank-profit-percent" class="bank-sub">—</div>
+            </div>
+            <div class="bank-card">
+                <div class="bank-title">ROI</div>
+                <div id="bank-roi" class="bank-value">—</div>
+                <div class="bank-sub">От стартового банка</div>
+            </div>
+            <div class="bank-card">
+                <div class="bank-title">Текущая ставка</div>
+                <div id="bank-current-bet" class="bank-value">—</div>
+                <div class="bank-sub">База догона</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- MAIN STATS -->
+    <div class="grid">
+        <div class="card">
+            <div class="card-title">Всего прогнозов</div>
+            <div id="total" class="card-value blue">—</div>
+        </div>
+        <div class="card">
+            <div class="card-title">Зашло</div>
+            <div id="hits" class="card-value green">—</div>
+        </div>
+        <div class="card">
+            <div class="card-title">Не зашло</div>
+            <div id="misses" class="card-value red">—</div>
+        </div>
+        <div class="card">
+            <div class="card-title">Проходимость</div>
+            <div id="accuracy" class="card-value orange">—</div>
+        </div>
+    </div>
+
+    <!-- LAST PREDICTION -->
+    <section class="section">
+        <div class="section-title">🎯 Последний прогноз</div>
+        <div id="latest" class="latest">Загрузка...</div>
+    </section>
+
+    <!-- ROLLING -->
+    <section class="section">
+        <div class="section-title">📈 Проходимость по дистанции</div>
+        <div id="rolling" class="rolling"></div>
+    </section>
+
+    <!-- DOGON -->
+    <section class="section">
+        <div class="section-title">🎯 Статистика по догонам</div>
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Догон</th>
+                        <th>Прогнозов</th>
+                        <th>Зашло</th>
+                        <th>Не зашло</th>
+                        <th>Проходимость</th>
+                        <th>%</th>
+                    </tr>
+                </thead>
+                <tbody id="dogon-table"></tbody>
+            </table>
+        </div>
+    </section>
+
+    <!-- RANKS -->
+    <section class="section">
+        <div class="section-title">🃏 Проходимость по рангам</div>
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Ранг</th>
+                        <th>Прогнозов</th>
+                        <th>Зашло</th>
+                        <th>Не зашло</th>
+                        <th>Проходимость</th>
+                        <th>%</th>
+                    </tr>
+                </thead>
+                <tbody id="cards-table"></tbody>
+            </table>
+        </div>
+    </section>
+
+    <!-- CHART -->
+    <section class="section">
+        <div class="section-title">📊 Последние 100 прогнозов</div>
+        <div id="chart" class="chart"></div>
+    </section>
+
+    <!-- BANK HISTORY -->
+    <section class="section">
+        <div class="section-title">📜 История банка</div>
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Время</th>
+                        <th>Тип</th>
+                        <th>Ранг</th>
+                        <th>Догон</th>
+                        <th>Ставка</th>
+                        <th>Выплата</th>
+                        <th>Баланс</th>
+                    </tr>
+                </thead>
+                <tbody id="bank-history-table"></tbody>
+            </table>
+        </div>
+    </section>
+
+    <div id="updated" class="footer">Обновление...</div>
+
+    <div class="disclaimer">
+        ⚠️ Ставки — это риск. Относитесь к этому с ответственностью.
+        Данный ресурс не несёт ответственности за возможные потери.
+    </div>
+
+</main>
+
+<script>
+
+function percent(value) { return Number(value || 0).toFixed(2) + "%"; }
+
+function escapeHtml(value) {
+    return String(value ?? "")
+        .replaceAll("&", "&amp;").replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#039;");
+}
+
+function formatMoney(value) {
+    const num = Number(value || 0);
+    return num.toLocaleString("ru-RU", { minimumFractionDigits: 0, maximumFractionDigits: 2 }) + " ₽";
+}
+
+function formatTime(iso) {
+    if (!iso) return "—";
+    try {
+        const date = new Date(iso);
+        return date.toLocaleString("ru-RU", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+    } catch (e) { return "—"; }
+}
+
+async function loadStats() {
+    try {
+        const response = await fetch("/api/stats?_=" + Date.now());
+        if (!response.ok) throw new Error("HTTP " + response.status);
+        const data = await response.json();
+        render(data);
+    } catch (error) {
+        document.getElementById("updated").textContent = "Ошибка загрузки статистики";
+    }
+}
+
+async function loadBank() {
+    try {
+        const response = await fetch("/api/bank?_=" + Date.now());
+        if (!response.ok) throw new Error("HTTP " + response.status);
+        const data = await response.json();
+        renderBank(data);
+    } catch (error) { console.error("Bank error:", error); }
+}
+
+async function loadBankHistory() {
+    try {
+        const response = await fetch("/api/bank/history?_=" + Date.now());
+        if (!response.ok) throw new Error("HTTP " + response.status);
+        const data = await response.json();
+        renderBankHistory(data);
+    } catch (error) { console.error("Bank history error:", error); }
+}
+
+function render(data) {
+    const overall = data.overall || {};
+    document.getElementById("total").textContent = overall.total || 0;
+    document.getElementById("hits").textContent = overall.hits || 0;
+    document.getElementById("misses").textContent = overall.misses || 0;
+    document.getElementById("accuracy").textContent = percent(overall.accuracy);
+
+    // LATEST (Исправленный блок)
+    const latest = data.latest;
+    const latestElement = document.getElementById("latest");
+
+    if (!latest) {
+        latestElement.innerHTML = "<div class='latest-item'>Нет данных</div>";
+    } else {
+        let resultText = "⏳ Ожидание";
+        if (latest.result === "hit") resultText = "✅ ЗАШЛО";
+        if (latest.result === "miss") resultText = "❌ НЕ ЗАШЛО";
+
+        let cfText = (latest.cf && latest.cf.player) ? Number(latest.cf.player).toFixed(2) : "—";
+        if (isNaN(cfText)) cfText = "—";
+
+        latestElement.innerHTML = `
+            <div class="latest-item">
+                <div class="latest-label">Карта</div>
+                <div class="latest-value">${escapeHtml(latest.rank)}</div>
+            </div>
+            <div class="latest-item">
+                <div class="latest-label">Коэффициент</div>
+                <div class="latest-value">${cfText}</div>
+            </div>
+            <div class="latest-item">
+                <div class="latest-label">Догон</div>
+                <div class="latest-value">D${escapeHtml(latest.dogon)}</div>
+            </div>
+            <div class="latest-item">
+                <div class="latest-label">Результат</div>
+                <div class="latest-value">${resultText}</div>
+            </div>
+        `;
+    }
+
+    // ROLLING
+    const rolling = data.rolling || {};
+    const rollingElement = document.getElementById("rolling");
+    const rollingPeriods = [
+        ["100", "Последние 100"],
+        ["500", "Последние 500"],
+        ["1000", "Последние 1000"]
+    ];
+    rollingElement.innerHTML = "";
+    rollingPeriods.forEach(([key, name]) => {
+        const item = rolling[key] || {};
+        rollingElement.innerHTML += `
+            <div class="rolling-card">
+                <div class="rolling-name">${name}</div>
+                <div class="rolling-value">${percent(item.accuracy)}</div>
+                <div style="margin-top:8px;color:#788598;font-size:12px;">${item.hits || 0} / ${item.total || 0}</div>
+            </div>
+        `;
+    });
+
+    // DOGON
+    const dogonTable = document.getElementById("dogon-table");
+    dogonTable.innerHTML = "";
+    (data.dogon || []).forEach(item => {
+        dogonTable.innerHTML += `
+            <tr>
+                <td><strong>D${item.dogon}</strong></td>
+                <td>${item.total}</td>
+                <td class="green">${item.hits}</td>
+                <td class="red">${item.misses}</td>
+                <td><div class="progress"><div class="progress-bar" style="width:${Math.min(item.accuracy, 100)}%;"></div></div></td>
+                <td><strong>${percent(item.accuracy)}</strong></td>
+            </tr>
+        `;
+    });
+
+    // RANKS
+    const cardsTable = document.getElementById("cards-table");
+    cardsTable.innerHTML = "";
+    (data.ranks || []).forEach(item => {
+        cardsTable.innerHTML += `
+            <tr>
+                <td><strong>${escapeHtml(item.rank)}</strong></td>
+                <td>${item.total}</td>
+                <td class="green">${item.hits}</td>
+                <td class="red">${item.misses}</td>
+                <td><div class="progress"><div class="progress-bar" style="width:${Math.min(item.accuracy, 100)}%;"></div></div></td>
+                <td><strong>${percent(item.accuracy)}</strong></td>
+            </tr>
+        `;
+    });
+
+    // CHART
+    const chart = document.getElementById("chart");
+    chart.innerHTML = "";
+    (data.chart || []).forEach(item => {
+        const bar = document.createElement("div");
+        bar.className = "bar " + (item.result === "hit" ? "hit" : "miss");
+        bar.style.height = "100%";
+        bar.title = "#N" + item.game + " | ранг " + item.rank + " | D" + item.dogon;
+        chart.appendChild(bar);
+    });
+
+    document.getElementById("updated").textContent = "Последнее обновление: " + data.updated_at;
+}
+
+function renderBank(data) {
+    if (!data) return;
+    document.getElementById("bank-balance").textContent = formatMoney(data.balance);
+    document.getElementById("bank-start").textContent = "Старт: " + formatMoney(data.start_balance);
+    
+    const profitEl = document.getElementById("bank-profit");
+    profitEl.textContent = (data.profit >= 0 ? "+" : "") + formatMoney(data.profit);
+    profitEl.className = "bank-value " + (data.profit >= 0 ? "profit-positive" : "profit-negative");
+
+    document.getElementById("bank-profit-percent").textContent = (data.profit >= 0 ? "+" : "") + data.roi.toFixed(2) + "%";
+    document.getElementById("bank-roi").textContent = data.roi.toFixed(2) + "%";
+    document.getElementById("bank-current-bet").textContent = formatMoney(data.current_bet);
+}
+
+function renderBankHistory(data) {
+    const table = document.getElementById("bank-history-table");
+    table.innerHTML = "";
+    if (!Array.isArray(data) || data.length === 0) {
+        table.innerHTML = `<tr><td colspan="7" style="text-align:center; color:#7e8ba0;">Нет записей</td></tr>`;
+        return;
+    }
+    [...data].reverse().forEach(item => {
+        let typeText = item.type || "—";
+        let typeClass = "";
+        if (item.type === "win") { typeText = "✅ WIN"; typeClass = "history-type-win"; }
+        else if (item.type === "lose") { typeText = "❌ LOSE"; typeClass = "history-type-lose"; }
+        else if (item.type === "return") { typeText = "♻️ RETURN"; typeClass = "history-type-return"; }
+        
+        table.innerHTML += `
+            <tr>
+                <td>${formatTime(item.at)}</td>
+                <td class="${typeClass}">${typeText}</td>
+                <td><strong>${escapeHtml(item.rank || "—")}</strong></td>
+                <td>${item.dogon !== undefined ? "D" + item.dogon : "—"}</td>
+                <td>${item.bet !== undefined ? formatMoney(item.bet) : "—"}</td>
+                <td>${item.payout !== undefined ? formatMoney(item.payout) : "—"}</td>
+                <td><strong>${formatMoney(item.balance_after)}</strong></td>
+            </tr>
+        `;
+    });
+}
+
+loadStats();
+loadBank();
+loadBankHistory();
+
+setInterval(loadStats, 5000);
+setInterval(loadBank, 5000);
+setInterval(loadBankHistory, 15000);
+
+</script>
+
+</body>
+</html>
