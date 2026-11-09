@@ -113,6 +113,17 @@ def find_trigger(game, prev_game=None, next_game=None):
     }
 
 # =====================================================================
+# ПОИСК МАСТИ У ИГРОКА
+# =====================================================================
+
+def find_suit_in_player(game, suit):
+    target = normalize_suit(suit)
+    for rank, s in game.get("player_cards") or []:
+        if normalize_suit(s) == target:
+            return f"{rank}{s}"
+    return None
+
+# =====================================================================
 # ОБРАБОТЧИК ПОТОКА (откладывает на 1 игру, чтобы знать "следующую")
 # =====================================================================
 
@@ -127,15 +138,16 @@ class TriggerProcessor:
         self.prev_game = None
         self.pending_game = None
         self.on_trigger = on_trigger
+        self._seen_ids = set()
 
     def feed(self, game):
         if game is None:
             return
 
+        gid = game.get("game_id")
+
         # Дедуп по game_id (на случай повторов из чата)
-        if self.pending_game and game["game_id"] == self.pending_game["game_id"]:
-            return
-        if self.prev_game and game["game_id"] == self.prev_game["game_id"]:
+        if gid in self._seen_ids:
             return
 
         # Обрабатываем отложенную игру — теперь у неё есть "следующая"
@@ -148,12 +160,13 @@ class TriggerProcessor:
             if trigger:
                 self._emit(trigger)
 
+            self._seen_ids.add(self.pending_game["game_id"])
             self.prev_game = self.pending_game
 
         self.pending_game = game
 
     def flush(self):
-        """Вызывать при остановке потока: обработать последнюю отложенную игру (без next)."""
+        """Обработать последнюю отложенную игру (без next)."""
         if self.pending_game is None:
             return
 
@@ -165,6 +178,7 @@ class TriggerProcessor:
         if trigger:
             self._emit(trigger)
 
+        self._seen_ids.add(self.pending_game["game_id"])
         self.prev_game = self.pending_game
         self.pending_game = None
 
