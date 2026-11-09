@@ -53,36 +53,56 @@ def parse_game_message(text):
 
     return {
         "game_id": game_id,
-        "player_cards": parse_cards(blocks[0]),   # левая скобка = игрок
-        "dealer_cards": parse_cards(blocks[1]),   # правая = дилер
+        "player_cards": parse_cards(blocks[0]),
+        "dealer_cards": parse_cards(blocks[1]),
         "raw": text,
         "received_at": datetime.now(MOSCOW_TZ).isoformat(),
     }
 
 # =====================================================================
+# ФЛАГИ АНОМАЛИЙ (#R / #X)
+# =====================================================================
+
+# \b после #R/#X — чтобы не поймать #R2, #X10 и т.п.
+SKIP_FLAG_RE = re.compile(r"#(?:R|X)\b")
+
+def has_skip_flag(game):
+    """True, если в игре есть маркер #R или #X (как отдельный токен)."""
+    if not game:
+        return False
+    return bool(SKIP_FLAG_RE.search(game.get("raw", "")))
+
+# =====================================================================
 # ТРИГГЕР: ПЕРВАЯ КАРТА ИГРОКА (С ФИЛЬТРАМИ)
 # =====================================================================
 
-def find_trigger(game):
-    # --- ФИЛЬТР 1: Исключаем аномалии и ничьи (#R, #X) ---
-    raw_text = game.get("raw", "")
-    if "#R" in raw_text or "#X" in raw_text:
+def find_trigger(game, prev_game=None, next_game=None):
+    """
+    Возвращает триггер или None.
+    Пропускаем триггер, если #R/#X есть в предыдущей, текущей или следующей игре.
+    """
+    if game is None:
         return None
+
+    # --- ФИЛЬТР 0: Аномалии в prev / current / next ---
+    for g in (prev_game, game, next_game):
+        if has_skip_flag(g):
+            return None
 
     player = game.get("player_cards") or []
     if not player:
         return None
 
-    # --- ФИЛЬТР 2: Задвоение масти у игрока ---
+    # --- ФИЛЬТР 1: Задвоение масти у игрока ---
     suits = [suit for rank, suit in player]
     if len(suits) != len(set(suits)):
-        return None  # Если есть дубликаты мастей — пропускаем
+        return None
 
     # --- ОСНОВНАЯ ЛОГИКА ТРИГГЕРА ---
     rank, suit = player[0]
     predicted_suit = TRIGGER_MAP.get(rank)
     if not predicted_suit:
-        return None   # A, 10 — пропуск
+        return None  # A, 10 — пропуск
 
     trigger_number = game["game_id"]
     return {
@@ -93,15 +113,66 @@ def find_trigger(game):
     }
 
 # =====================================================================
-# ПОИСК МАСТИ У ИГРОКА
+# ОБРАБОТЧИК ПОТОКА (откладывает на 1 игру, чтобы знать "следующую")
 # =====================================================================
 
-def find_suit_in_player(game, suit):
-    target = normalize_suit(suit)
-    for rank, s in game.get("player_cards") or []:
-        if normalize_suit(s) == target:
-            return f"{rank}{s}"
-    return None
+class TriggerProcessor:
+    """
+    Игры приходят по порядку (#N...).
+    Чтобы проверить "следующую" игру, держим одну игру в pending
+    и обрабатываем её, когда приходит следующая.
+    """
+
+    def __init__(self, on_trigger=None):
+        self.prev_game = None
+        self.pending_game = None
+        self.on_trigger = on_trigger
+
+    def feed(self, game):
+        if game is None:
+            return
+
+        # Дедуп по game_id (на случай повторов из чата)
+        if self.pending_game and game["game_id"] == self.pending_game["game_id"]:
+            return
+        if self.prev_game and game["game_id"] == self.prev_game["game_id"]:
+            return
+
+        # Обрабатываем отложенную игру — теперь у неё есть "следующая"
+        if self.pending_game is not None:
+            trigger = find_trigger(
+                self.pending_game,
+                prev_game=self.prev_game,
+                next_game=game,
+            )
+            if trigger:
+                self._emit(trigger)
+
+            self.prev_game = self.pending_game
+
+        self.pending_game = game
+
+    def flush(self):
+        """Вызывать при остановке потока: обработать последнюю отложенную игру (без next)."""
+        if self.pending_game is None:
+            return
+
+        trigger = find_trigger(
+            self.pending_game,
+            prev_game=self.prev_game,
+            next_game=None,
+        )
+        if trigger:
+            self._emit(trigger)
+
+        self.prev_game = self.pending_game
+        self.pending_game = None
+
+    def _emit(self, trigger):
+        if self.on_trigger:
+            self.on_trigger(trigger)
+        else:
+            print(f"🎯 Триггер: {trigger}", flush=True)
 
 # =====================================================================
 # ХЕЛПЕРЫ
