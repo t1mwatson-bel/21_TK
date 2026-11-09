@@ -19,6 +19,7 @@ from config import (
 from parsers import (
     parse_game_message, log_game, add_game_offset,
     find_trigger, find_suit_in_player, normalize_suit,
+    TriggerProcessor,
 )
 
 from telegram_api import (
@@ -62,6 +63,11 @@ last_cleanup_date = None
 last_predictions_cleanup = None
 PREDICTIONS_RETENTION_HOURS = 48
 PREDICTIONS_CLEANUP_INTERVAL_HOURS = 48
+
+# --- обработчик триггеров (prev / current / next + фильтр #R/#X) ---
+trigger_processor = TriggerProcessor(
+    on_trigger=lambda trig: create_prediction(trig)
+)
 
 
 # =====================================================================
@@ -231,14 +237,10 @@ def has_active_prediction():
 # =====================================================================
 # ЭФФЕКТИВНАЯ БАЗОВАЯ СТАВКА
 # =====================================================================
-# Если есть незакрытые серии, базовая ставка нового прогноза
-# должна продолжать самую глубокую из них, а не брать "сырой"
-# get_current_bet() (который равен START_BET, пока серия не закрыта).
 
 def get_effective_base_bet():
     base = get_current_bet()
 
-    # Смотрим на все незакрытые прогнозы и берём самый глубокий догон
     max_dogon = 0
     max_base = None
 
@@ -256,20 +258,16 @@ def get_effective_base_bet():
             max_base = p.get("base_bet")
 
     if max_dogon > 0 and max_base:
-        # Ставка Д(max_dogon) = max_base * 2.5^max_dogon
-        # Следующий прогноз должен стартовать с этой же ставки как base_bet
         return round(float(max_base) * (2.5 ** max_dogon), 2)
 
     return base
 
 
 # =====================================================================
-# СОЗДАНИЕ ПРОГНОЗА (без блокировки — каждый триггер работает)
+# СОЗДАНИЕ ПРОГНОЗА (принимает УЖЕ найденный триггер)
 # =====================================================================
 
-def create_prediction(game):
-    trigger = find_trigger(game)
-
+def create_prediction(trigger):
     if not trigger:
         return None
 
@@ -289,7 +287,7 @@ def create_prediction(game):
     prediction = {
         "algorithm": "player_first_card_trigger",
         "trigger_number": trigger["trigger_number"],
-        "trigger_game_id": game.get("game_id"),
+        "trigger_game_id": trigger.get("trigger_game_id"),
         "trigger_card": trigger["trigger_card"],
         "target_number": target,
         "predicted_suit": suit,
@@ -558,6 +556,9 @@ def finalize_pending_games():
         if now - i.get("first_seen", now) >= FINALIZE_WAIT_SECONDS
     ]
 
+    # важно: кормим в порядке номеров, чтобы prev/next были корректны
+    ready.sort()
+
     for n in ready:
         info = pending_games.pop(n, None)
 
@@ -572,7 +573,10 @@ def finalize_pending_games():
 
         games_cache[n] = g
         log_game(g)
-        create_prediction(g)
+
+        # прогоняем через TriggerProcessor:
+        # триггер выстрелит, когда придёт следующая игра
+        trigger_processor.feed(g)
 
 
 # =====================================================================
