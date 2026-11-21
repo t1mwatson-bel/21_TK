@@ -1,7 +1,7 @@
 import re
 import json
 import time
-
+import os
 import requests
 
 from config import (
@@ -12,9 +12,8 @@ from config import (
     FINALIZE_WAIT_SECONDS,
 )
 
-
 # =====================================================================
-# HTTP-СЕССИЯ
+# HTTP-СЕССИЯ (защищена от зависаний)
 # =====================================================================
 
 SESSION = requests.Session()
@@ -27,31 +26,26 @@ SESSION.headers.update({
         "Chrome/150.0.0.0 Safari/537.36"
     ),
     "Accept": "application/json, text/plain, */*",
+    "Connection": "close",  # важно: не держим протухшие соединения
 })
 
-
 # =====================================================================
-# OFFSET (сохранение между запусками)
+# OFFSET
 # =====================================================================
 
 def load_offset():
-    """Загружает offset из файла."""
-
     try:
-        if OFFSET_FILE and __import__("os").path.exists(OFFSET_FILE):
+        if OFFSET_FILE and os.path.exists(OFFSET_FILE):
             with open(OFFSET_FILE, "r", encoding="utf-8") as f:
                 value = f.read().strip()
                 if value:
                     return int(value)
     except Exception:
         pass
-
     return 0
 
 
 def save_offset(offset):
-    """Сохраняет offset в файл."""
-
     try:
         with open(OFFSET_FILE, "w", encoding="utf-8") as f:
             f.write(str(offset))
@@ -64,26 +58,19 @@ def save_offset(offset):
 # =====================================================================
 
 def delete_webhook():
-    """Удаляет webhook, чтобы использовать getUpdates."""
-
     try:
         response = SESSION.post(
             f"{TELEGRAM_API_URL}/deleteWebhook",
             json={"drop_pending_updates": False},
             timeout=10,
         )
-
         data = response.json()
-
         if data.get("ok"):
             print("✅ Webhook удалён, используем getUpdates", flush=True)
             return True
-
         print(f"❌ Ошибка deleteWebhook: {data}", flush=True)
-
     except Exception as e:
         print(f"❌ Ошибка удаления webhook: {e}", flush=True)
-
     return False
 
 
@@ -92,10 +79,7 @@ def delete_webhook():
 # =====================================================================
 
 def telegram_send(text, chat_id=None):
-    """Отправляет сообщение в канал прогнозов. Возвращает message_id."""
-
     target_chat = chat_id or CHANNEL_PROGNOZ
-
     try:
         response = SESSION.post(
             f"{TELEGRAM_API_URL}/sendMessage",
@@ -107,28 +91,19 @@ def telegram_send(text, chat_id=None):
             },
             timeout=10,
         )
-
         data = response.json()
-
         if data.get("ok"):
             return data["result"]["message_id"]
-
         print(f"❌ Telegram sendMessage: {data}", flush=True)
-
     except Exception as e:
         print(f"❌ Ошибка отправки Telegram: {e}", flush=True)
-
     return None
 
 
 def telegram_edit(message_id, text, chat_id=None):
-    """Редактирует сообщение в канале прогнозов."""
-
     if not message_id:
         return False
-
     target_chat = chat_id or CHANNEL_PROGNOZ
-
     try:
         response = SESSION.post(
             f"{TELEGRAM_API_URL}/editMessageText",
@@ -140,14 +115,10 @@ def telegram_edit(message_id, text, chat_id=None):
             },
             timeout=10,
         )
-
         data = response.json()
-
         return bool(data.get("ok"))
-
     except Exception as e:
         print(f"⚠️ Ошибка редактирования Telegram: {e}", flush=True)
-
     return False
 
 
@@ -156,13 +127,6 @@ def telegram_edit(message_id, text, chat_id=None):
 # =====================================================================
 
 def process_telegram_updates(offset, on_game_message):
-    """
-    Забирает апдейты из Telegram и передаёт текст игрового сообщения
-    в колбэк on_game_message(game_number, text, is_edited).
-
-    Возвращает новый offset.
-    """
-
     try:
         response = SESSION.get(
             f"{TELEGRAM_API_URL}/getUpdates",
@@ -177,50 +141,42 @@ def process_telegram_updates(offset, on_game_message):
             },
             timeout=10,
         )
-
         data = response.json()
-
         if not data.get("ok"):
-            print(f"❌ Telegram getUpdates: {data}", flush=True)
+            # Обработка 429 (слишком много запросов)
+            if data.get("error_code") == 429:
+                retry_after = data.get("parameters", {}).get("retry_after", 5)
+                print(f"⏳ Telegram 429: ждём {retry_after} сек", flush=True)
+                time.sleep(retry_after)
+            else:
+                print(f"❌ Telegram getUpdates: {data}", flush=True)
             return offset
 
         updates = data.get("result", [])
-
         for update in updates:
-
             update_id = update.get("update_id")
-
             if update_id is not None:
                 offset = update_id + 1
                 save_offset(offset)
 
-            post = (
-                update.get("channel_post")
-                or update.get("edited_channel_post")
-            )
-
+            post = update.get("channel_post") or update.get("edited_channel_post")
             if not post:
                 continue
 
             chat = post.get("chat", {})
             chat_id = str(chat.get("id", ""))
-
             text = post.get("text", "")
 
-            # Нас интересует только канал со статистикой игр
             if chat_id != str(CHANNEL_STATS):
                 continue
-
             if not text:
                 continue
 
             number_match = re.search(r"#N(\d+)", text)
-
             if not number_match:
                 continue
 
             game_number = int(number_match.group(1))
-
             is_edited = "edited_channel_post" in update
 
             try:
