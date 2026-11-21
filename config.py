@@ -11,6 +11,10 @@ BOT_TOKEN = os.getenv("BOT_TOKEN") or os.getenv("BOT_TOKEN_PROGNOZ")
 CHANNEL_PROGNOZ = os.getenv("CHAT_ID_21") or os.getenv("CHANNEL_PROGNOZ")
 CHANNEL_STATS = os.getenv("CHANNEL_STATS")
 
+# ВТОРОЙ КАНАЛ (куда летят рандомные 30%)
+CHANNEL_PROGNOZ_2 = os.getenv("CHAT_ID_21_2") or os.getenv("CHANNEL_PROGNOZ_2")
+SECOND_CHANNEL_CHANCE = float(os.getenv("SECOND_CHANNEL_CHANCE", "0.3"))
+
 # =====================================================================
 # ФАЙЛЫ
 # =====================================================================
@@ -33,17 +37,11 @@ FINALIZE_WAIT_SECONDS = 30
 # АЛГОРИТМ ПРОГНОЗА
 # =====================================================================
 
-# Отступ от триггера до целевой игры
 TARGET_OFFSET = 10
-
-# За сколько игр до целевой отправлять прогноз
 SEND_BEFORE_TARGET = 4
-
-# Догоны после целевой игры
 DOGON_GAMES = 4
 
 # Маппинг: первая карта игрока → масть прогноза
-# A и 10 — не триггерят
 TRIGGER_MAP = {
     "Q": "♣️",
     "J": "♠️",
@@ -58,7 +56,6 @@ TRIGGER_MAP = {
     "9": "♦️",
 }
 
-# Таймаут прогноза (минут от создания)
 PREDICTION_TIMEOUT_MINUTES = 20
 
 # =====================================================================
